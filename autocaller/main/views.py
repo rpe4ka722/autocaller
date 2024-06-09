@@ -466,7 +466,9 @@ def report_export(request, report_id):
         elif call.call_error:
             end_code = 'Ошибка станции'
         elif call.ats_no_answer:
-            end_code = 'Нет ответа от удаленной станции' 
+            end_code = 'Нет ответа от удаленной станции'
+        elif call.asterisk_no_answer:
+            end_code = 'Нет ответа от астериская'
         else: 
             end_code = call.end_code
         call_list = [call.abonent.full_name(), call.phone_type, call.abonent_number, conf, call.user_input, call.incorrect_input_count,

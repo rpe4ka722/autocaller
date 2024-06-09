@@ -170,13 +170,12 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id):
         print(f'Оповещение по номеру {abonent.mobile_phone_number} начато')
         manager = AMImanager(number=abonent.mobile_phone_number, sound=sound, code=code, report=report_id, abonent=abonent_id)
         try:
-            manager.run()
-            call_object = manager.call_object.confirmed
+            manager.run() 
         except:
-            manager.call_object.ats_no_answer = True
+            manager.call_object.asterisk_no_answer = True
             manager.call_object.end_time = datetime.datetime.now()
-            manager.call_object.save()
-
+        call_object = manager.call_object.confirmed
+        manager.call_object.save()
         del manager
         print(f'Оповещение по номеру {abonent.mobile_phone_number} завершено')
     if call_list.second_phone and not call_object:
@@ -184,11 +183,11 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id):
         manager = AMImanager(number=abonent.secondary_mobile_phone_number, sound=sound, code=code, report=report, abonent=abonent_id)
         try:
             manager.run()
-            call_object = manager.call_object.confirmed
         except:
-            manager.call_object.ats_no_answer = True
+            manager.call_object.asterisk_no_answer = True
             manager.call_object.end_time = datetime.datetime.now()
-            manager.call_object.save()
+        call_object = manager.call_object.confirmed
+        manager.call_object.save()
         del manager
         print(f'Оповещение по номеру {abonent.secondary_mobile_phone_number} завершено')
     if call_list.work_phone and not call_object:
@@ -196,11 +195,11 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id):
         manager = AMImanager(number=abonent.work_phone_number, sound=sound, code=code, report=report, abonent=abonent_id)
         try:
             manager.run()
-            call_object = manager.call_object.confirmed
         except:
-            manager.call_object.ats_no_answer = True
+            manager.call_object.asterisk_no_answer = True
             manager.call_object.end_time = datetime.datetime.now()
-            manager.call_object.save()
+        call_object = manager.call_object.confirmed
+        manager.call_object.save()
         del manager
         print(f'Оповещение по номеру {abonent.work_phone_number} завершено')
     #report.save() 
