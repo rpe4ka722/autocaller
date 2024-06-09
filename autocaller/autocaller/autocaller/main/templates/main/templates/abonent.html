@@ -1,0 +1,167 @@
+{% extends "main/templates/layout_abonents.html" %}
+{% block title %}{% endblock %}
+{% block content %}
+<div class="button-panel">
+    <!-- Кнопка-триггер модального окна -->
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#CreateAbonentModal">
+    Создать нового абонента
+    </button>
+    <span>{{msg}}</span>
+</div>
+<table class="table table-striped">
+  <thead>
+    <td>Фамилия</td>
+    <td>Имя</td>
+    <td>Отчество</td>
+    <td>Мобильный номер телефона</td>
+    <td>Дополнительный номер телефона</td>
+    <td>Рабочий номер телефона</td>
+    {% if adm %}
+    <td>Филиал</td>
+    {% endif%}
+    <td align="center">Редактировать</td>
+  </thead>
+  <tbody>
+     {%for object in objects %}
+     <tr>
+      <td>{{object.last_name}}</td>
+      <td>{{object.first_name}}</td>
+      <td>{{object.patronymic}}</td>
+      <td>{{object.mobile_phone_number}}</td>
+      <td>
+        {% if object.secondary_mobile_phone_number is None %}-{% else %}
+        {{object.secondary_mobile_phone_number}}
+        {% endif %}
+      </td>
+      <td>
+        {% if object.work_phone_number is None %}-{% else %}
+        {{object.work_phone_number}}
+        {% endif %}
+      </td>
+      {% if adm %}
+      <td>{{ object.str_department }}</td>
+      {% endif%}
+      <td align="center">
+        <div id="gear-icon"> 
+        <a class="abonent-edit" data-bs-toggle="modal" data-bs-target="#EditAbonentModal" onclick="ModalEdit(id='{{ object.id }}',
+        first_name='{{object.first_name}}', last_name='{{object.last_name}}', patronymic='{{object.patronymic}}', 
+        work_phone_number='{{object.work_phone_number}}', mobile_phone_number='{{object.mobile_phone_number}}', 
+        secondary_mobile_phone_number='{{object.secondary_mobile_phone_number}}')">
+        <i class="bi bi-gear-fill"></i>
+        </a>
+      </div>
+      </td>
+     </tr>
+     {% endfor %}
+  </tbody>
+</table>
+<!-- Модальное окно создание пользователя-->
+  <div class="modal fade" id="CreateAbonentModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fs-5" id="exampleModalLabel">Создание нового абонента</h5>
+        </div>
+        <div class="modal-body">
+          <form id="create_abonent" method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="first_name" class="form-label">Имя</label>
+              <input type="text" class="form-control"name="first_name" required>
+            </div>
+            <div class="mb-3">
+              <label for="last_name" class="form-label">Фамилия</label>
+              <input type="text" class="form-control" name="last_name" required>
+            </div>
+            <div class="mb-3">
+              <label for="patronymic" class="form-label">Отчетство</label>
+              <input type="text" class="form-control" name="patronymic" required>
+            </div>
+            <div class="mb-3">
+              <label for="mobile_phone_number" class="form-label">Мобильный телефон</label>
+              <div class="input-group">
+              <span class="input-group-text" id="basic-addon1">+7</span>
+              <input type="text" class="form-control" name="mobile_phone_number" pattern="[0-9]{10}"
+              required aria-describedby="basic-addon1" placeholder="xxxxxxxxxx">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="secondary_mobile_phone_number" class="form-label">Дополнительный телефон</label>
+              <div class="input-group">
+              <span class="input-group-text" id="basic-addon2">+7</span>
+              <input type="text" class="form-control" name="secondary_mobile_phone_number" 
+              aria-describedby="basic-addon2" placeholder="xxxxxxxxxx" pattern="[0-9]{10}">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="work_phone_number" class="form-label">Рабочий телефон</label>
+              <input type="text" class="form-control" name="work_phone_number" placeholder="xxxxx" pattern="[0-9]{5}">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
+          <button type="submit" class="btn btn-outline-secondary btn-sm" form="create_abonent">Сохранить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Модальное окно редактирование пользователя-->
+  <div class="modal fade" id="EditAbonentModal" tabindex="-1" aria-labelledby="exampleModalLabel1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fs-5" id="exampleModalLabel1">Редактирование абонента</h5>
+        </div>
+        <div class="modal-body">
+          <form id="edit_abonent_form" method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="first_name" class="form-label">Имя</label>
+              <input type="text" class="form-control" id="first_name" name="first_name" required>
+            </div>
+            <div class="mb-3">
+              <label for="last_name" class="form-label">Фамилия</label>
+              <input type="text" class="form-control" id="last_name" name="last_name" required>
+            </div>
+            <div class="mb-3">
+              <label for="patronymic" class="form-label">Отчетство</label>
+              <input type="text" class="form-control" id="patronymic" name="patronymic" required>
+            </div>
+            <div class="mb-3">
+              <label for="mobile_phone_number" class="form-label">Мобильный телефон</label>
+              <div class="input-group">
+              <span class="input-group-text" id="basic-addon1">+7</span>
+              <input type="text" class="form-control" id="mobile_phone_number" name="mobile_phone_number" pattern="[0-9]{10}"
+              required aria-describedby="basic-addon1" placeholder="xxxxxxxxxx">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="secondary_mobile_phone_number" class="form-label">Дополнительный телефон</label>
+              <div class="input-group">
+              <span class="input-group-text" id="basic-addon2">+7</span>
+              <input type="text" class="form-control" id="secondary_mobile_phone_number" name="secondary_mobile_phone_number" 
+              aria-describedby="basic-addon2" placeholder="xxxxxxxxxx" pattern="[0-9]{10}">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="work_phone_number" class="form-label">Рабочий телефон</label>
+              <input type="text" class="form-control" id="work_phone_number" name="work_phone_number" placeholder="xxxxx" pattern="[0-9]{5}">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <div id="trash-button">
+            <button type="submit" class="btn btn-outline-secondary btn-sm me-auto" form="delete_abonent_form">
+              Удалить <i class="bi bi-trash3-fill"></i>
+            </button>
+          </div>
+          <button type="submit" class="btn btn-outline-secondary btn-sm" form="edit_abonent_form">Сохранить</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Форма удаления объекта-->
+  <form id="delete_abonent_form"  method="post">{% csrf_token %}</form>
+{% endblock %}

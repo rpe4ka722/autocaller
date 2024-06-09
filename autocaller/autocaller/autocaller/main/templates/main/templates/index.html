@@ -1,0 +1,86 @@
+{% extends "main/templates/layout_main.html" %}
+{% load static %}
+{% block title %}{% endblock %}
+{% block content %}
+<div class="ping-status">
+  <div id="pinger" hx-get="{% url 'main:ping' %}" hx-trigger="every 10s">
+    {% if status %}
+    <div class="status-icon-wrapper-true">
+    <i class="bi bi-check-square-fill"></i> 
+    </div>
+    <div class="pinger-text">
+      - соединение установлено
+    </div>
+    {% else%}
+    <div class="status-icon-wrapper-false">
+    <i class="bi bi-exclamation-square-fill"></i>
+    </div>
+    <div class="pinger-text">
+     - соединение потеряно
+    </div>
+    {% endif%}
+  </div>
+</div>
+<!-- Содержание тела -->
+<div class="card_wrapper">
+    <!-- Карточки оповещений -->
+    {% for list in lists %}
+    <div id="card_{{list.id}}" class="card_child" data-bs-toggle="modal" data-bs-target="#PlayList" 
+    onclick="PlayFunc(
+        cardid='{{list.id}}',
+        list_name='{{list.list_name}}'
+        )">
+      <div class="card">
+        <div class="card-body">
+          <div class="card_logo" align="center">
+            <img src="static/main/free-icon-document.png"  height="50">
+          </div>
+          <h5 class="card-title">{{list.list_name}}</h5>
+          <p class="card-text">{{list.list_description}}</p>
+          <p class="card-text">Комбинация уведомления: {{list.accept_combination}}</p>
+          <p class="card-text">Количество абонентов: {{list.abonents_count}}</p>
+          <p class="card-text">Аудиофайл: {{list.sound.filename}}</p>
+            {% if list.main_phone %}
+            <p class="card-text"> 
+              <i class="bi bi-phone"></i> Мобильный
+            </p>
+            {% endif %}
+            {% if list.second_phone %}
+            <p class="card-text">
+              <i class="bi bi-phone"></i> Дополнительный
+            </p>
+            {% endif %}
+            {% if list.work_phone %}
+            <p class="card-text">
+              <i class="bi bi-telephone"></i> Рабочий
+            </p>
+            {% endif %}
+          </p>
+        </div>
+        <div class="card-footer">
+            <div class="play_list_modal_footer">
+                <i class="bi bi-telephone-forward-fill"></i>
+                <h5>Запуск оповещения</h5>
+            </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    <!-- =============================== -->
+</div>
+<!-- Модальное окно запуска списка-->
+<div class="modal fade" id="PlayList" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fs-5" id="play_list_message"></h5>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
+                <button type="submit" class="btn btn-outline-secondary btn-sm" form="start_call" data-bs-dismiss="modal">Запустить</button>
+            </div>
+        </div>
+    </div>
+</div>
+<form id="start_call" method="GET"></form>
+{% endblock %}

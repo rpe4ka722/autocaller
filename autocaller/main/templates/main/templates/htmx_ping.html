@@ -1,0 +1,15 @@
+{% if status %}
+<div class="status-icon-wrapper-true">
+<i class="bi bi-check-square-fill"></i> 
+</div>
+<div class="pinger-text">
+    - соединение установлено
+</div>
+{% else%}
+<div class="status-icon-wrapper-false">
+<i class="bi bi-exclamation-square-fill"></i>
+</div>
+<div class="pinger-text">
+    - соединение потеряно
+</div>
+{% endif%}

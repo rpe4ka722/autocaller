@@ -1,0 +1,7 @@
+<div>
+  Звонков в очереди: {{calls_count}}<br>
+  Звонков завершено: {{calls_finished}}<br>
+  <div class="progress" id="call_progress" role="progressbar" aria-label="Basic example" aria-valuenow="{{ percents }}" aria-valuemin="0" aria-valuemax="100">
+    <div class="progress-bar" style="width: {{percents}}%">{{percents}}%</div>
+  </div>
+</div>
