@@ -29,6 +29,7 @@
         <h5 class="card-title">{{list.list_name}}</h5>
         <p class="card-text">{{list.list_description}}</p>
         <p class="card-text">Комбинация уведомления: {{list.accept_combination}}</p>
+        <p class="card-text">Количество попыток: {{list.tries_number}}</p>
         <p class="card-text">Количество абонентов: {{list.abonents_count}}</p>
         <p class="card-text">Аудиофайл: {{list.sound.filename}}</p>
           {% if list.main_phone %}
@@ -46,7 +47,6 @@
             <i class="bi bi-telephone"></i> Рабочий
           </p>
           {% endif %}
-        </p>
       </div>
     </div>
   </div>
@@ -90,6 +90,11 @@
           <div class="mb-3">
             <label for="accept_code_input" class="form-label">Введите цифру для подтверждения</label>
             <input class="form-control" id="accept_code_input" name="accept_code" maxlength="1" pattern="[0-9]{1}" placeholder="X" required >
+          </div>
+          <!-- количество попыток -->
+          <div class="mb-3">
+            <label for="accept_code_input" class="form-label">Введите количество попыток</label>
+            <input class="form-control" id="tries_number" name="tries_number" maxlength="1" pattern="[1-3]{1}" placeholder="1">
           </div>
           <!-- выбор точек обзвона -->
           <div class="mb-3">

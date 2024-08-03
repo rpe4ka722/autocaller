@@ -66,11 +66,18 @@
 }
 
 .card {
-    width: 18rem; 
-    height: 23rem; 
+    width: 20rem; 
+    height: 25rem; 
     font-size: smaller;
     line-height: 1rem;
     word-wrap: normal;
+}
+
+.card-footer {
+  height: 3rem;
+  width: 100%;
+  bottom: 0;
+  position: absolute;
 }
 
 .create-card {

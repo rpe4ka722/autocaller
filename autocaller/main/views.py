@@ -74,7 +74,8 @@ def ping(request):
     try:
        s = requests.Session() 
        config = configparser.ConfigParser()
-       config.read('./django-files/config.ini')
+       config.read('../django-files/config.ini')
+       print(config['asterisk']['host'])
        response = s.get("http://" + config['asterisk']['host'] + ":" + config['asterisk']['http_port'] + "/asterisk/rawman?action=login&username=" 
                          + config['asterisk']['username'] + "&secret=" + config['asterisk']['secret'], timeout=0.1)
        response = s.get("http://" + config['asterisk']['host'] + ":" + config['asterisk']['http_port'] +  "/asterisk/rawman?action=PJSIPShowRegistrationsOutbound", timeout=0.1)
@@ -308,7 +309,11 @@ def create_list(request):
         try:
             accept_code = int(request.POST['accept_code'])
         except:
-             return HttpResponse('Неизвестная ошибка', status=500)
+            return HttpResponse('Неизвестная ошибка', status=500)
+        try:
+            tries_number = int(request.POST['tries_number'])
+        except:
+            tries_number = 1
         if abonents_list == '':
             return HttpResponse('Список абонентов не должен быть пустым', status=500)
         else:
@@ -317,7 +322,7 @@ def create_list(request):
             except SoundFile.DoesNotExist:
                 return HttpResponse('Неизвестная ошибка', status=500)
             list = CallList.objects.create(list_name=listname, list_description=list_text, sound=sound, last_edit_user=current_user,
-                                           accept_combination=accept_code, department=dep)
+                                           accept_combination=accept_code, department=dep, tries_number=tries_number)
             if 'mobile' in phones:
                 list.main_phone = True
             else:
@@ -468,7 +473,7 @@ def report_export(request, report_id):
         elif call.ats_no_answer:
             end_code = 'Нет ответа от удаленной станции'
         elif call.asterisk_no_answer:
-            end_code = 'Нет ответа от астериская'
+            end_code = 'Нет ответа от астериска'
         else: 
             end_code = call.end_code
         call_list = [call.abonent.full_name(), call.phone_type, call.abonent_number, conf, call.user_input, call.incorrect_input_count,

@@ -74,6 +74,7 @@ class CallList(models.Model):
     work_phone = models.BooleanField(default=False)
     sound = models.ForeignKey(SoundFile, on_delete=models.CASCADE, null=True)
     accept_combination = models.IntegerField(default=5, validators=[MinValueValidator(0), MaxValueValidator(9)])
+    tries_number = models.IntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(3)])
 
 
     def abonents_count(self):

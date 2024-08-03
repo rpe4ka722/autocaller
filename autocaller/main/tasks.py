@@ -10,7 +10,7 @@ import time, datetime, configparser
 class AMImanager:
     def __init__(self, number, sound, code, report, abonent):
         config = configparser.ConfigParser()
-        config.read('./django-files/config.ini')
+        config.read('../django-files/config.ini')
         if asyncio.get_event_loop().is_closed():
             self.loop = asyncio.new_event_loop()
         else:
@@ -166,42 +166,45 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id):
     report = Report.objects.get(id=report_id)
     abonent = Abonent.objects.get(id=abonent_id)
     call_object = None
-    if call_list.main_phone:
-        print(f'Оповещение по номеру {abonent.mobile_phone_number} начато')
-        manager = AMImanager(number=abonent.mobile_phone_number, sound=sound, code=code, report=report_id, abonent=abonent_id)
-        try:
-            manager.run() 
-        except:
-            manager.call_object.asterisk_no_answer = True
-            manager.call_object.end_time = datetime.datetime.now()
-        call_object = manager.call_object.confirmed
-        manager.call_object.save()
-        del manager
-        print(f'Оповещение по номеру {abonent.mobile_phone_number} завершено')
-    if call_list.second_phone and not call_object:
-        print(f'Оповещение по номеру {abonent.secondary_mobile_phone_number} начато')
-        manager = AMImanager(number=abonent.secondary_mobile_phone_number, sound=sound, code=code, report=report, abonent=abonent_id)
-        try:
-            manager.run()
-        except:
-            manager.call_object.asterisk_no_answer = True
-            manager.call_object.end_time = datetime.datetime.now()
-        call_object = manager.call_object.confirmed
-        manager.call_object.save()
-        del manager
-        print(f'Оповещение по номеру {abonent.secondary_mobile_phone_number} завершено')
-    if call_list.work_phone and not call_object:
-        print(f'Оповещение по номеру {abonent.work_phone_number} начато')
-        manager = AMImanager(number=abonent.work_phone_number, sound=sound, code=code, report=report, abonent=abonent_id)
-        try:
-            manager.run()
-        except:
-            manager.call_object.asterisk_no_answer = True
-            manager.call_object.end_time = datetime.datetime.now()
-        call_object = manager.call_object.confirmed
-        manager.call_object.save()
-        del manager
-        print(f'Оповещение по номеру {abonent.work_phone_number} завершено')
+    current_try = 1
+    while current_try <= call_list.tries_number and not call_object:
+        if call_list.main_phone and abonent.mobile_phone_number:
+            print(f'Оповещение по номеру {abonent.mobile_phone_number} начато')
+            manager = AMImanager(number=abonent.mobile_phone_number, sound=sound, code=code, report=report_id, abonent=abonent_id)
+            try:
+                manager.run() 
+            except:
+                manager.call_object.asterisk_no_answer = True
+                manager.call_object.end_time = datetime.datetime.now()
+            call_object = manager.call_object.confirmed
+            manager.call_object.save()
+            del manager
+            print(f'Оповещение по номеру {abonent.mobile_phone_number} завершено')
+        if call_list.second_phone and not call_object and abonent.secondary_mobile_phone_number:
+            print(f'Оповещение по номеру {abonent.secondary_mobile_phone_number} начато')
+            manager = AMImanager(number=abonent.secondary_mobile_phone_number, sound=sound, code=code, report=report, abonent=abonent_id)
+            try:
+                manager.run()
+            except:
+                manager.call_object.asterisk_no_answer = True
+                manager.call_object.end_time = datetime.datetime.now()
+            call_object = manager.call_object.confirmed
+            manager.call_object.save()
+            del manager
+            print(f'Оповещение по номеру {abonent.secondary_mobile_phone_number} завершено')
+        if call_list.work_phone and not call_object and abonent.work_phone_number:
+            print(f'Оповещение по номеру {abonent.work_phone_number} начато')
+            manager = AMImanager(number=abonent.work_phone_number, sound=sound, code=code, report=report, abonent=abonent_id)
+            try:
+                manager.run()
+            except:
+                manager.call_object.asterisk_no_answer = True
+                manager.call_object.end_time = datetime.datetime.now()
+            call_object = manager.call_object.confirmed
+            manager.call_object.save()
+            del manager
+            print(f'Оповещение по номеру {abonent.work_phone_number} завершено')
+        current_try += 1
     #report.save() 
     return call_object    
 
