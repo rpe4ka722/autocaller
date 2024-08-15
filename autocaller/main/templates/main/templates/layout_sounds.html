@@ -39,13 +39,7 @@
         <a class="nav-link" href="{% url 'main:report' %}">Отчеты</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="{% url 'account:logout' %}">
-                {% if request.user %}
-                {{request.user.username}}
-                {% else %}
-                -
-                {% endif %}
-            </a>
+            <a class="nav-link" href="{% url 'account:logout' %}">Выйти</a>
         </li>
     </ul>
     {% block content %}

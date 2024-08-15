@@ -3,13 +3,21 @@
 {% block content %}
 <div class="button-panel">
     <!-- Кнопка-триггер модального окна -->
+    <div>
     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#CreateSound">
       Создать
     </button>
     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#DownloadSound">
       Загрузить
     </button>
-    <span>{{msg}}</span>
+    </div>
+    <span>
+      {% if request.user %}
+      {{request.user.username}}
+      {% else %}
+      -
+      {% endif %}
+    </span>
 </div>
 <!-- Таблица с данными -->
 <div class="sounds_list">

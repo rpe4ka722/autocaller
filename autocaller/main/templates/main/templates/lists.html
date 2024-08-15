@@ -2,7 +2,18 @@
 {% block title %}{% endblock %}
 {% block content %}
 <div class="button-panel">
-    <span>{{msg}}</span>
+  <div class="button-panel">
+    <!-- Кнопка-триггер модального окна -->
+    <div>
+    </div>
+    <span>
+      {% if request.user %}
+      {{request.user.username}}
+      {% else %}
+      -
+      {% endif %}
+    </span>
+  </div>
 </div>
 <!-- Содержание тела -->
 <div class="card_wrapper">

@@ -17,26 +17,31 @@ services:
     ports:
       - 6379:6379
 
-  # nginx:
-  #   image: nginx
-  #   container_name: nginx
-  #   restart: always
+  nginx:
+    image: nginx
+    container_name: nginx
+    restart: always
+  ports:
+      - 6379:6379
+  volumes:
+    - static_volume:/opt/autocaller/staticfiles
+    - media_volume:/opt/autocaller/mediafiles
 
-  # autocaller:
-  #   image: autocaller
-  #   container_name: django-app
-  #   depends_on:
-  #     - redis
-  #   restart: always
-  #   ports:
-  #     - 8000:8000
-  #   volumes:
-  #     - ./django-files:/opt/autocaller/django-files
-  #     - ./media/media:/opt/autocaller/media
-  #   command: >
-  #     bash -c "python3 manage.py runserver 0.0.0.0:8000 & 
-  #             celery -A autocaller worker -Q hipri -l INFO --concurrency=3 &
-  #             celery -A autocaller worker -Q celery -l INFO --concurrency=5"
+  autocaller:
+    image: autocaller
+    container_name: django-app
+    depends_on:
+      - redis
+    restart: always
+    ports:
+      - 8000:8000
+    volumes:
+      - ./django-files:/opt/autocaller/django-files
+      - ./media/media:/opt/autocaller/media
+    command: >
+      bash -c "gunicorn autocaller.wsgi:application --bind 0.0.0.0:8000 & 
+              celery -A autocaller worker -Q hipri -l INFO --concurrency=5 &
+              celery -A autocaller worker -Q celery -l INFO --concurrency=10"
 
 
     

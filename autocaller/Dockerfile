@@ -19,7 +19,7 @@ RUN apt-get update \
     && apt-get install libRHVoice -y\
     && apt-get install python3-module-redis-py -y
     
-
+CMD python3 manage.py collectstatic -yes
 
 # CMD python3 manage.py migrate\
 #     #&& python3 manage.py createsuperuser\

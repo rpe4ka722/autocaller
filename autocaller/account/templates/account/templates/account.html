@@ -6,7 +6,13 @@
     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#CreateUserModal">
     Создать нового пользователя
     </button>
-    <span>{{msg}}</span>
+    <span>
+      {% if request.user %}
+      {{request.user.username}}
+      {% else %}
+      -
+      {% endif %}
+    </span>
 </div>
 <table class="table table-striped">
   <thead>

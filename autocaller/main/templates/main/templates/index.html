@@ -2,24 +2,33 @@
 {% load static %}
 {% block title %}{% endblock %}
 {% block content %}
-<div class="ping-status">
-  <div id="pinger" hx-get="{% url 'main:ping' %}" hx-trigger="every 10s">
-    {% if status %}
-    <div class="status-icon-wrapper-true">
-    <i class="bi bi-check-square-fill"></i> 
+<div class="button-panel">
+  <div class="ping-status">
+    <div id="pinger" hx-get="{% url 'main:ping' %}" hx-trigger="every 10s">
+      {% if status %}
+      <div class="status-icon-wrapper-true">
+      <i class="bi bi-check-square-fill"></i> 
+      </div>
+      <div class="pinger-text">
+        - соединение установлено
+      </div>
+      {% else%}
+      <div class="status-icon-wrapper-false">
+      <i class="bi bi-exclamation-square-fill"></i>
+      </div>
+      <div class="pinger-text">
+      - соединение потеряно
+      </div>
+      {% endif%}
     </div>
-    <div class="pinger-text">
-      - соединение установлено
-    </div>
-    {% else%}
-    <div class="status-icon-wrapper-false">
-    <i class="bi bi-exclamation-square-fill"></i>
-    </div>
-    <div class="pinger-text">
-     - соединение потеряно
-    </div>
-    {% endif%}
   </div>
+  <span>
+    {% if request.user %}
+    {{request.user.username}}
+    {% else %}
+    -
+    {% endif %}
+  </span>
 </div>
 <!-- Содержание тела -->
 <div class="card_wrapper">
