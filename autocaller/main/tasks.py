@@ -10,7 +10,7 @@ import time, datetime, configparser
 class AMImanager:
     def __init__(self, number, sound, code, report, abonent):
         config = configparser.ConfigParser()
-        config.read('../django-files/config.ini')
+        config.read('./django-files/config.ini')
         if asyncio.get_event_loop().is_closed():
             self.loop = asyncio.new_event_loop()
         else:

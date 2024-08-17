@@ -1,0 +1,256 @@
+.navbar-brand {
+    transition: transform 0.5s;
+}
+
+.navbar-brand:hover {
+    transform: scale(1.1);
+}
+
+.button-panel {
+    width: 100%;
+    min-height: 7%;
+    padding-top: 1%;
+    padding-bottom: 1%;
+    padding-left: 1%;
+    padding-right: 1%;
+    display: flex;
+    justify-content: space-between;
+}
+
+
+#gear-icon {
+    width: 60%;
+    transition: transform 0.5s;
+}
+
+#gear-icon:hover {
+    transform: scale(1.4);
+    margin:0px;
+}
+
+#trash-button {
+   margin-right: auto;
+}
+
+.sounds_list {
+    width: 30%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 2%;
+    width: fit-content;
+    border: none;
+}
+
+.file-cell {
+    padding-right: 20px;
+}
+
+#sounds-table td {
+    vertical-align: middle;
+    border-top: 0px;
+}
+  
+.card_wrapper {
+    display: grid;
+    align-content: space-around;
+    justify-content: space-around;
+    grid-template-columns: auto auto auto auto;
+    margin-bottom: 3rem;
+}
+
+.card_child {
+    transition: box-shadow 0.5s,transform 0.5s;
+}
+
+.card_child:hover {
+    transform: translate(-5px, -5px);
+    box-shadow: 2px 2px 4px rgba(10, 10, 10, 0.5);
+}
+
+.card {
+    width: 20rem; 
+    height: 25rem; 
+    font-size: smaller;
+    line-height: 1rem;
+    word-wrap: normal;
+}
+
+.card-footer {
+  height: 3rem;
+  width: 100%;
+  bottom: 0;
+  position: absolute;
+}
+
+.create-card {
+    height: 100%;
+    width: 100%;
+    display:flex;
+    align-items:center;
+    justify-content: center;
+}
+
+
+.added_abonents_div {
+    display: flex;
+    margin-bottom: 3px;
+}
+
+
+.trash_div_abonents {
+    margin-left: auto;
+    transition: transform 0.5s;
+}
+
+.trash_div_abonents:hover {
+    margin-left: auto;
+    transform: scale(1.4);
+}
+
+.abonent_add_icon {
+    transition: transform 0.5s;
+}
+
+.abonent_add_icon:hover {
+    transform: scale(1.6);
+}
+
+.play_list_modal_footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.play_list_modal_footer h5 {
+    margin-left: 1rem;
+    margin-bottom: 0;
+}
+
+.play_card {
+    width: 18rem; 
+    height: 23rem; 
+    font-size: smaller;
+    line-height: 1rem;
+    word-wrap: normal;
+}
+
+.call_progress {
+    margin-left: 5rem;
+    margin-right: 5rem;
+}
+
+.loader {
+    width: 1.5em;
+    height: 1.5em;
+    border: 3px dotted #222222;
+    border-radius: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+    animation: rotation 2s linear infinite;
+  }
+  
+  @keyframes rotation {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  } 
+
+#progress_screen {
+    height: 70vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.card-progress {
+    width: 80%; 
+    min-height: 23%;
+    padding: 1rem; 
+    font-size: smaller;
+    line-height: 1rem;
+    word-wrap: normal;
+    border: 1px solid black;
+    border-radius: 5px;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes progress-scale {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+      }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+.progerss-card-logo {
+    animation: progress-scale 2s linear infinite;
+}
+
+.progress-card-footer {
+    padding-top: 1rem;
+}
+
+.footer-loader {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: block;
+    margin:15px auto;
+    position: relative;
+    color: #0d00ff;
+    box-sizing: border-box;
+    animation: animloader 2s linear infinite;
+  }
+  
+  @keyframes animloader {
+    0% {
+      box-shadow: 14px 0 0 -2px,  38px 0 0 -2px,  -14px 0 0 -2px,  -38px 0 0 -2px;
+    }
+    25% {
+      box-shadow: 14px 0 0 -2px,  38px 0 0 -2px,  -14px 0 0 -2px,  -38px 0 0 2px;
+    }
+    50% {
+      box-shadow: 14px 0 0 -2px,  38px 0 0 -2px,  -14px 0 0 2px,  -38px 0 0 -2px;
+    }
+    75% {
+      box-shadow: 14px 0 0 2px,  38px 0 0 -2px,  -14px 0 0 -2px,  -38px 0 0 -2px;
+    }
+    100% {
+      box-shadow: 14px 0 0 -2px,  38px 0 0 2px,  -14px 0 0 -2px,  -38px 0 0 -2px;
+    }
+  }
+
+
+#pinger {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.status-icon-wrapper-true {
+  font-size: 1.5rem;
+  color: rgb(0, 244, 45);
+}
+
+.status-icon-wrapper-false {
+  font-size: 1.5rem;
+  color: rgb(244, 0, 0);
+}
+
+.pinger-text {
+  margin-left: 1rem;
+  margin-top: 0.25rem;
+}
+
+.auth_modal .modal {
+  position: static;
+  display: block;
+}

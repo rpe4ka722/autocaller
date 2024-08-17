@@ -1,7 +1,0 @@
-{
-    "python.testing.pytestArgs": [
-        "autocaller"
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
-}

@@ -17,11 +17,4 @@ RUN apt-get update \
     && apt-get install sox -y\
     && apt-get install RHVoice -y\
     && apt-get install libRHVoice -y\
-    && apt-get install python3-module-redis-py -y
-    
-CMD python3 manage.py collectstatic -yes
-
-# CMD python3 manage.py migrate\
-#     #&& python3 manage.py createsuperuser\
-#     && python3 manage.py runserver
-#CMD python3 manage.py runserver 0.0.0.0:8000#
+    && apt-get install python3-module-redis-py -y\

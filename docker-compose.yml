@@ -14,18 +14,23 @@ services:
     image: redis
     container_name: redis
     restart: always
-    ports:
-      - 6379:6379
+    expose:
+        - 6379
 
   nginx:
     image: nginx
     container_name: nginx
+    depends_on:
+      - autocaller
     restart: always
-  ports:
-      - 6379:6379
-  volumes:
-    - static_volume:/opt/autocaller/staticfiles
-    - media_volume:/opt/autocaller/mediafiles
+    expose:
+        - 8000
+    ports:
+        - 80:80
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - static_volume:/opt/autocaller/static
+      - ./media/media:/opt/autocaller/media
 
   autocaller:
     image: autocaller
@@ -33,16 +38,20 @@ services:
     depends_on:
       - redis
     restart: always
-    ports:
-      - 8000:8000
+    expose:
+        - 6379
+        - 8000
     volumes:
       - ./django-files:/opt/autocaller/django-files
       - ./media/media:/opt/autocaller/media
+      - static_volume:/opt/autocaller/static
     command: >
       bash -c "gunicorn autocaller.wsgi:application --bind 0.0.0.0:8000 & 
               celery -A autocaller worker -Q hipri -l INFO --concurrency=5 &
               celery -A autocaller worker -Q celery -l INFO --concurrency=10"
 
+volumes:
+ static_volume:
 
     
 

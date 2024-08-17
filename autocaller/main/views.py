@@ -74,7 +74,7 @@ def ping(request):
     try:
        s = requests.Session() 
        config = configparser.ConfigParser()
-       config.read('../django-files/config.ini')
+       config.read('./django-files/config.ini')
        print(config['asterisk']['host'])
        response = s.get("http://" + config['asterisk']['host'] + ":" + config['asterisk']['http_port'] + "/asterisk/rawman?action=login&username=" 
                          + config['asterisk']['username'] + "&secret=" + config['asterisk']['secret'], timeout=0.1)
