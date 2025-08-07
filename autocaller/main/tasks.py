@@ -8,7 +8,7 @@ import time, datetime, configparser
 
 
 class AMImanager:
-    def __init__(self, number, sound, code, report, abonent):
+    def __init__(self, number,type, sound, code, report, abonent, password):
         config = configparser.ConfigParser()
         config.read('./django-files/config.ini')
         if asyncio.get_event_loop().is_closed():
@@ -24,9 +24,15 @@ class AMImanager:
             secret=config['asterisk']['secret'],)
         self.manager.register_event("*", self.handle_events)
         self.abonent = Abonent.objects.get(id=abonent)
-        self.number = number
+        if len(str(number)) > 5:
+            self.number = '98' + number[2::]
+        else: 
+            self.number = number
+        # self.number = number
+        self.type = type
         self.sound = sound
         self.code = code
+        self.password = password
         self.status = True
         self.report = Report.objects.get(id=report)
         self.call_object = None
@@ -35,7 +41,8 @@ class AMImanager:
 
             
     async def handle_call(self):
-        call_object = await sync_to_async(Call.objects.create, thread_sensitive=True)(abonent_number=self.number, report=self.report, abonent=self.abonent, start_time=datetime.datetime.now())
+        call_object = await sync_to_async(Call.objects.create, thread_sensitive=True)(abonent_number=self.number, phone_type=self.type, report=self.report, 
+                                                                                      abonent=self.abonent, start_time=datetime.datetime.now())
         await sync_to_async(call_object.save)()
         self.call_object = call_object
         await self.manager.connect()
@@ -49,7 +56,7 @@ class AMImanager:
         'Exten': 'call',
         'Priority': '1',
         'CallerID': 'Autocaller',
-        'Variable': f'data={self.sound},code={self.code}',
+        'Variable': f'data={self.sound},code={self.code},pass={self.password}',
         })
 
         counter = 0
@@ -99,12 +106,14 @@ class AMImanager:
                        '70', '79', '81', '82', '83', '84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '95', '96', '97',
                        '98', '99', '100', '101', '102', '103', '111', '127')
 
+        #нет ответа от абонента
         if event.lower() == 'hangup' and message.cause == '0':
             print(f'{self.number} Не взял трубку!!!!')
             self.call_object.call_not_answered = True
             self.call_object.end_time = datetime.datetime.now()
             self.status = False
             
+        #сброс вызова
         elif event.lower() == 'hangup' and message.cause in ('17', '21'):   
             print(f'{self.number} Вызов отклонен!!!! ')
             self.call_object.call_rejected = True
@@ -112,12 +121,14 @@ class AMImanager:
             self.call_object.end_time = datetime.datetime.now()
             self.status = False
 
+        #абонент положил трубку
         elif event.lower() == 'hangup' and message.cause == '16':
             self.call_object.end_time = datetime.datetime.now()   
             print(f'{self.number} Вызов завершен нормально!!!!')
             self.call_object.end_code = message.cause
             self.status = False
         
+        #обработка кодов завершения
         elif event.lower() == 'hangup' and message.cause in cause_codes:   
             print(f'Вызов {self.number} завершен с кодом {message.cause}')
             self.call_object.call_no_response = True
@@ -125,17 +136,20 @@ class AMImanager:
             self.call_object.end_code = message.cause
             self.status = False
 
+        #обработка неизвестных кодов завершения
         elif event.lower() == 'hangup' and message.cause not in cause_codes and message.cause != '0' and message.cause != '17':
             print(f'Вызов {self.number} завершен с неизвестным кодом {message.cause}')
             self.call_object.end_code = message.cause
             self.call_object.end_time = datetime.datetime.now()
             self.status = False
 
+        #регистрация ответа абонента
         elif event.lower() == 'dialend' and message.DialStatus == 'ANSWER':
             self.call_object.call_answered = True
             await sync_to_async(self.call_object.save)()
             print(f'Номер {self.number} взял трубку!!!!')
 
+        #регистрация ввода кода уведомления
         elif event.lower() == 'varset' and message.Variable == 'user_input':
             self.call_object.user_input = message.Value
             if message.Value == str(self.code): 
@@ -145,10 +159,25 @@ class AMImanager:
                 self.call_object.incorrect_input_count += 1
                 await sync_to_async(self.call_object.save)()
             print(f'Номер {self.number} ввел {message.Value}! Количество неверных попыток {self.call_object.incorrect_input_count}')
+
+
+        #регистрация ввода пароля
+        elif event.lower() == 'varset' and message.Variable == 'pass_input':
+            self.call_object.user_pass_input = message.Value
+            if message.Value == str(self.password): 
+                self.call_object.pass_confirmed = True
+                await sync_to_async(self.call_object.save)()
+                print(f'Номер {self.number} ввел верный пароль {message.Value}! Количество неверных попыток ввода пароля {self.call_object.incorrect_pass_input_count}')
+            else:
+                self.call_object.incorrect_pass_input_count += 1
+                await sync_to_async(self.call_object.save)()
+                print(f'Номер {self.number} ввел неверный пароль {message.Value}! Количество неверных попыток ввода пароля {self.call_object.incorrect_pass_input_count}')
         
+        #отработка ошибки атс
         elif event.lower() == 'originateresponse' and message.Response == 'Failure':
             self.call_object.call_error = True
             print(f'Вызов на номер {self.number} невозможен!!!!Ошибка станции!!!')
+            print(message)
             self.call_object.end_time = datetime.datetime.now()
             self.status = False
         
@@ -161,16 +190,19 @@ class AMImanager:
 
 
 @shared_task() 
-def abonent_call(sound, code, report_id, abonent_id, call_list_id):
+def abonent_call(sound, code, report_id, abonent_id, call_list_id, password):
+    print(f'abon_id {abonent_id}')
+    print(f'report_id {report_id}')
+    print(f'abon_id {abonent_id}')
     call_list = CallList.objects.get(id=call_list_id)
-    report = Report.objects.get(id=report_id)
+    #report = Report.objects.get(id=report_id)
     abonent = Abonent.objects.get(id=abonent_id)
     call_object = None
     current_try = 1
     while current_try <= call_list.tries_number and not call_object:
         if call_list.main_phone and abonent.mobile_phone_number:
             print(f'Оповещение по номеру {abonent.mobile_phone_number} начато')
-            manager = AMImanager(number=abonent.mobile_phone_number, sound=sound, code=code, report=report_id, abonent=abonent_id)
+            manager = AMImanager(number=abonent.mobile_phone_number, type='мобильный', sound=sound, code=code, report=report_id, abonent=abonent_id, password=password)
             try:
                 manager.run() 
             except:
@@ -182,7 +214,7 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id):
             print(f'Оповещение по номеру {abonent.mobile_phone_number} завершено')
         if call_list.second_phone and not call_object and abonent.secondary_mobile_phone_number:
             print(f'Оповещение по номеру {abonent.secondary_mobile_phone_number} начато')
-            manager = AMImanager(number=abonent.secondary_mobile_phone_number, sound=sound, code=code, report=report, abonent=abonent_id)
+            manager = AMImanager(number=abonent.secondary_mobile_phone_number, type='дополнительный', sound=sound, code=code, report=report_id, abonent=abonent_id, password=password)
             try:
                 manager.run()
             except:
@@ -194,7 +226,7 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id):
             print(f'Оповещение по номеру {abonent.secondary_mobile_phone_number} завершено')
         if call_list.work_phone and not call_object and abonent.work_phone_number:
             print(f'Оповещение по номеру {abonent.work_phone_number} начато')
-            manager = AMImanager(number=abonent.work_phone_number, sound=sound, code=code, report=report, abonent=abonent_id)
+            manager = AMImanager(number=abonent.work_phone_number, type='рабочий', sound=sound, code=code, report=report_id, abonent=abonent_id, password=password)
             try:
                 manager.run()
             except:
@@ -218,12 +250,15 @@ def list_call(call_list_id, report_id):
         call_list = CallList.objects.get(id=call_list_id)
         report = Report.objects.get(id=report_id)
         sound = call_list.sound.get_full_path()[:-4]
+        print(sound)
         code = call_list.accept_combination
+        password = call_list.password
         results = []
         print(f'Лист {call_list.list_name} начат')
         for abonent in call_list.abonents.all():
+            time.sleep(1)
             abonent_id = abonent.id
-            res = abonent_call.apply_async(args=[sound, code, report.id, abonent_id, call_list_id], queue='celery')
+            res = abonent_call.apply_async(args=[sound, code, report.id, abonent_id, call_list_id, password,], queue='celery')
             print(f'Запущено оповещение абонента {abonent.full_name()}')
             results.append(str(res))
         report.call_queue = len(results)
