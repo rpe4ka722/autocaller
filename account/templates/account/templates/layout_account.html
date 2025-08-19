@@ -1,0 +1,49 @@
+{% load static %}
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{% static 'main/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'main/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'main/icons/font/bootstrap-icons.css' %}">
+    <script src="{% static 'scripts/jquery.min.js' %}"></script>
+    <script src="{% static 'scripts/htmx.min.js' %}"></script>
+    <script src="{% static 'scripts/bootstrap.min.js' %}"></script>
+    <script src="{% static 'scripts/bootstrap.bundle.js' %}"></script>
+    <script async src="{% static 'scripts/user_scripts.js' %}"></script>
+</head>
+<body>
+    <ul class="nav justify-content-around nav-tabs align-items-end" style="background-color: #e3f2fd;">
+        <div class="nav-item">
+        <a class="navbar-brand" href="{% url 'main:index' %}">
+           <img src="{% static 'main/logotip-gazprom-transgaz-surgut-v-krivykh.png' %}" width="100">
+        </a>
+        </div>
+        <li class="nav-item">
+        <a class="nav-link" href="{% url 'main:index' %}">Главная</a>
+        </li>
+        <li class="nav-item">
+        <a class="nav-link " aria-current="page" href="{% url 'main:abonents' %}">Абоненты</a>
+        </li>
+        <li class="nav-item">
+        <a class="nav-link" href="{% url 'main:lists' %}">Списки оповещения</a>
+        </li>
+        <li class="nav-item">
+        <a class="nav-link" href="{% url 'main:sounds' %}">Управление файлами оповещения</a>
+        </li>
+        <li class="nav-item">
+        <a class="nav-link active" href="{% url 'account:index' %}">Управление пользователями</a>
+        </li>
+        <li class="nav-item">
+        <a class="nav-link" href="{% url 'main:report' %}">Отчеты</a>
+        </li>
+        <li class="nav-item">
+        <a class="nav-link" href="{% url 'account:logout' %}">Выйти</a>
+        </li>
+    </ul>
+    {% block content %}
+    {% endblock %}
+</body>
+</html>

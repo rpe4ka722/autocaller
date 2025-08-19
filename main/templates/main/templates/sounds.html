@@ -1,0 +1,111 @@
+{% extends "main/templates/layout_sounds.html" %}
+{% block title %}{% endblock %}
+{% block content %}
+<div class="button-panel">
+    <!-- Кнопка-триггер модального окна -->
+    <div>
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#CreateSound">
+      Создать
+    </button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#DownloadSound">
+      Загрузить
+    </button>
+    </div>
+    <span>
+      {% if request.user %}
+      {{request.user.username}}
+      {% else %}
+      -
+      {% endif %}
+    </span>
+</div>
+<!-- Таблица с данными -->
+<div class="sounds_list">
+  <table class="table table-borderless table-sm" id="sounds-table">
+    <tbody>
+      {% for file in files %}
+      <tr>
+        <td><div class="file-cell">{{ file.filename }}</div></td>
+        <td>
+          <audio id="audio_{{ file.filename }}" src="{{ file.get_url }}/?{{ time }}" controls preload="metadata"></audio>
+        </td>
+        <td>
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#DeleteSound" onclick="Deletesound(filename='{{ file.filename}}', id='{{file.id }}')">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<!-- Модальное окно создание звука-->
+<div class="modal fade" id="CreateSound" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fs-5" id="exampleModalLabel">Создание звукового файла</h5>
+      </div>
+      <div class="modal-body">
+        <form id="create_sound_form" method="post" action="{% url 'main:create_sound'%}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="filename_input" class="form-label">Введите название файла</label>
+            <input type="text" class="form-control" id="filename_input" maxlength="10" required name="filename">
+          </div>
+          <div class="mb-3">
+            <label for="exampleFormControlTextarea1" class="form-label">Напишите текст сообщения</label>
+            <textarea class="form-control" id="exampleFormControlTextarea1" rows="3" required name="text"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
+        <button type="submit" class="btn btn-outline-secondary btn-sm" form="create_sound_form">Создать</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Модальное окно загрузки файла-->
+<div class="modal fade" id="DownloadSound" tabindex="-1" aria-labelledby="exampleModalLabel1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fs-5" id="exampleModalLabel1">Загрузка звукового файла</h5>
+      </div>
+      <div class="modal-body">
+        <form id="download_sound" method="post" enctype="multipart/form-data" action="{% url 'main:download_sound' %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="file_input" class="form-label">Выберите файл для загрузки</label>
+            <input class="form-control" type="file" id="file_input" name="sound_file" accept="audio/*, .mp3, .wav" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
+        <button type="submit" class="btn btn-outline-secondary btn-sm" form="download_sound">Загрузить</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Модальное окно удаления файла-->
+<div class="modal fade" id="DeleteSound" tabindex="-1" aria-labelledby="exampleModalLabel1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fs-5" id="delete_sound_message">Вы действительно хотите удалить выбранный файл?</h5>
+      </div>
+      <div class="modal-body">
+        <form id="delete_sound_form" method="post">
+          {% csrf_token %}
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
+        <button type="submit" class="btn btn-outline-secondary btn-sm" form="delete_sound_form">Удалить</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
