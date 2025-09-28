@@ -17,6 +17,7 @@ services:
     expose:
         - 6379
 
+
   nginx:
     image: nginx
     container_name: nginx
@@ -46,7 +47,7 @@ services:
       - ./media/media:/opt/autocaller/media
       - static_volume:/opt/autocaller/static
     command: >
-      bash -c "gunicorn autocaller.wsgi:application --bind 0.0.0.0:8000 & 
+      bash -c "gunicorn autocaller.wsgi:application --bind 0.0.0.0:8000 &
               celery -A autocaller worker -Q hipri -l INFO --concurrency=5 &
               celery -A autocaller worker -Q celery -l INFO --concurrency=10"
 
