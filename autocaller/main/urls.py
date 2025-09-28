@@ -25,4 +25,6 @@ urlpatterns = [
     path('report_export/<int:report_id>', views.report_export, name='report_export'),
     path('report_time_status/<int:report_id>', views.report_time_status, name='report_time_status'),
     path('report_abon_status/<int:report_id>', views.report_abon_status, name='report_abon_status'),
+    path('report_status/<int:report_id>', views.report_status, name='report_status'),
+    path('repeat_unconfirmed/<int:report_id>', views.repeat_unconfirmed, name='repeat_unconfirmed'),
 ]

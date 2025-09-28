@@ -42,11 +42,14 @@ class Abonent(models.Model):
     def full_name(self):
         first_name = self.first_name
         patronymic = self.patronymic
+        last_name = self.last_name
         if first_name is None:
             first_name = ''
         if patronymic is None:
             patronymic = ''
-        full_name = self.last_name + ' ' + first_name + ' ' + patronymic
+        if last_name is None:
+            last_name = ''
+        full_name = last_name + ' ' + first_name + ' ' + patronymic
         return full_name
     
 

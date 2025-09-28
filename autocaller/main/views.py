@@ -29,7 +29,6 @@ def index(request):
         rep = Report.objects.get(department=dep, in_progress=True)
         call_list = rep.list.abonents_count() 
         percents = int(100*(rep.unchecked_abonents + rep.checked_abonents)/call_list)
-        print(percents)
         context = {'report': rep,'calls_count': call_list, 'abonent_confirmed': rep.checked_abonents, 
                    'abonent_unconfirmed': rep.unchecked_abonents, 'percents': percents}
         return render(request, 'main/templates/index_in_progress.html', context)   
@@ -56,7 +55,6 @@ def percent_status(request, report_id):
         report = Report.objects.get(id=report_id)
         abonents_count = report.list.abonents.all().count()
         percents = int(100*(report.unchecked_abonents + report.checked_abonents)/abonents_count)
-        print(percents)
         if report.in_progress == True:    
             context = {'percents': percents, 'calls_count': abonents_count, 'in_progress': True, 
                        'abonent_confirmed': report.checked_abonents, 'abonent_unconfirmed': report.unchecked_abonents}
@@ -67,6 +65,46 @@ def percent_status(request, report_id):
             return  JsonResponse(context)
     except Report.DoesNotExist:
         return HttpResponse('Неизвестная ошибка', status=500)    
+    
+
+@login_required(login_url='account:login')       
+def report_status(request, report_id):
+    try:
+        calls_with_confirmed_false = Call.objects.filter(report_id=report_id, confirmed=False)
+        data = []
+        abonents_id = []
+        for call in calls_with_confirmed_false:
+            if call.abonent:
+                # Если абонент существует, получаем его данные
+                abonent_data = {
+                    "full_name": call.abonent.full_name(),
+                }
+                if abonent_data not in data:
+                    data.append(abonent_data)
+        context = {'unconfirmed_abonents': data}
+        return  JsonResponse(context)
+    except Report.DoesNotExist:
+        return HttpResponse('Неизвестная ошибка', status=500)
+    
+
+@login_required(login_url='account:login')
+def repeat_unconfirmed(request, report_id):
+    try:
+        calls_with_confirmed_false = Call.objects.filter(report_id=report_id, confirmed=False)
+        data = []
+        abonents_id = []
+        for call in calls_with_confirmed_false:
+            if call.abonent:
+                # Если абонент существует, получаем его данные
+                abonent_data = {
+                    "full_name": call.abonent.full_name(),
+                }
+                if abonent_data not in data:
+                    data.append(abonent_data)
+        context = {'unconfirmed_abonents': data}
+        return  JsonResponse(context)
+    except Report.DoesNotExist:
+        return HttpResponse('Неизвестная ошибка', status=500)
 
 
 @login_required(login_url='account:login')
@@ -402,7 +440,6 @@ def report(request):
 
 @login_required(login_url='account:login')
 def start_list(request, list_id):
-    print('Вход во вью')
     if request.method == 'GET':
         user = request.user
         user_id = user.id
