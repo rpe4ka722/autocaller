@@ -25,6 +25,7 @@ def index(request):
     config.read('./django-files/config.ini')
     dep = request.user.department
     lists = CallList.objects.filter(department=dep)
+    sounds = SoundFile.objects.filter(department=dep)
     try:
         rep = Report.objects.get(department=dep, in_progress=True)
         call_list = rep.list.abonents_count() 
@@ -45,7 +46,7 @@ def index(request):
             response = s.get("http://" + config['asterisk']['host'] + ":" + config['asterisk']['http_port'] + "/asterisk/rawman?action=logoff", timeout=0.1)    
         except:
             status = False
-        context = {'lists': lists, 'status': status}
+        context = {'lists': lists, 'status': status, 'sounds': sounds}
         return render(request, 'main/templates/index.html', context)
 
 
@@ -90,19 +91,13 @@ def report_status(request, report_id):
 @login_required(login_url='account:login')
 def repeat_unconfirmed(request, report_id):
     try:
+        # Проверяем существование Report явно
+        Report.objects.get(id=report_id) 
+        
         calls_with_confirmed_false = Call.objects.filter(report_id=report_id, confirmed=False)
-        data = []
-        abonents_id = []
-        for call in calls_with_confirmed_false:
-            if call.abonent:
-                # Если абонент существует, получаем его данные
-                abonent_data = {
-                    "full_name": call.abonent.full_name(),
-                }
-                if abonent_data not in data:
-                    data.append(abonent_data)
-        context = {'unconfirmed_abonents': data}
-        return  JsonResponse(context)
+        
+
+        
     except Report.DoesNotExist:
         return HttpResponse('Неизвестная ошибка', status=500)
 
@@ -392,11 +387,11 @@ def create_list(request):
         if abonents_list == '':
             return HttpResponse('Список абонентов не должен быть пустым', status=500)
         else:
-            try:
-                sound = SoundFile.objects.get(filename=request.POST['sound_name'], department=dep)
-            except SoundFile.DoesNotExist:
-                return HttpResponse('Неизвестная ошибка', status=500)
-            list = CallList.objects.create(list_name=listname, list_description=list_text, sound=sound, last_edit_user=current_user,
+            # try:
+            #     sound = SoundFile.objects.get(filename=request.POST['sound_name'], department=dep)
+            # except SoundFile.DoesNotExist:
+            #     return HttpResponse('Неизвестная ошибка', status=500)
+            list = CallList.objects.create(list_name=listname, list_description=list_text,last_edit_user=current_user,
                                            accept_combination=accept_code, department=dep, tries_number=tries_number, password = password)
             if 'mobile' in phones:
                 list.main_phone = True
@@ -439,10 +434,21 @@ def report(request):
 
 
 @login_required(login_url='account:login')
-def start_list(request, list_id):
+def start_list(request, list_id, sound_id):
     if request.method == 'GET':
         user = request.user
         user_id = user.id
+        try:
+            sound = SoundFile.objects.get(id=sound_id)
+        except SoundFile.DoesNotExist:
+            return redirect('main:error_page_404')
+        try:
+            call_list = CallList.objects.get(id=list_id)
+            call_list.sound = sound
+            call_list.save()
+        except CallList.DoesNotExist:
+            return redirect('main:error_page_404')
+        list = CallList.objects.get
         report_id = start_caller.apply_async(args=[list_id, user_id], queue='hipri', routing_key='hipri')
         print(f'Старт листа вью {report_id}')
         while True:
@@ -587,4 +593,8 @@ def report_abon_status(request, report_id):
             return render(request, 'main/templates/report_abon_count.html', context)
     except Report.DoesNotExist:
         return HttpResponse('Неизвестная ошибка', status=500)
+    
+
+def error_page_404(request):
+    return render(request, 'main/templates/404.html')
     

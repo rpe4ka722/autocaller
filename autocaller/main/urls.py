@@ -19,7 +19,7 @@ urlpatterns = [
     path('create_list', views.create_list, name='create_list'),
     path('delete_list/<int:list_id>', views.delete_list, name='delete_list'),
     path('report', views.report, name='report'),
-    path('start_list/<int:list_id>', views.start_list, name='start_list'),
+    path('start_list/<int:list_id>/<int:sound_id>', views.start_list, name='start_list'),
     path('report_delete/<int:report_id>', views.report_delete, name='report_delete'),
     path('percent_status/<int:report_id>', views.percent_status, name='percent_status'),
     path('report_export/<int:report_id>', views.report_export, name='report_export'),
@@ -27,4 +27,5 @@ urlpatterns = [
     path('report_abon_status/<int:report_id>', views.report_abon_status, name='report_abon_status'),
     path('report_status/<int:report_id>', views.report_status, name='report_status'),
     path('repeat_unconfirmed/<int:report_id>', views.repeat_unconfirmed, name='repeat_unconfirmed'),
+    path('404', views.error_page_404, name='error_page_404'),
 ]

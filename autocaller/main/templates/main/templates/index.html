@@ -49,7 +49,7 @@
           <p class="card-text">Комбинация уведомления: {{list.accept_combination}}</p>
           <p class="card-text">Пароль: {{list.password}}</p>
           <p class="card-text">Количество абонентов: {{list.abonents_count}}</p>
-          <p class="card-text">Аудиофайл: {{list.sound.filename}}</p>
+          <!-- <p class="card-text">Аудиофайл: {{list.sound.filename}}</p> -->
             {% if list.main_phone %}
             <p class="card-text"> 
               <i class="bi bi-phone"></i> Мобильный
@@ -80,17 +80,31 @@
 </div>
 <!-- Модальное окно запуска списка-->
 <div class="modal fade" id="PlayList" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fs-5" id="play_list_message"></h5>
+  <div ></div>
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title fs-5" id="play_list_message"></h5>
+          </div>
+          <div class="mb-3">
+            <div class="sound-input">
+              <label for="sound-select" class="form-label">Выберите звуковой файл для оповещения</label>
+              <div class="input-group mb-3">
+                <select name="sound-select" class="form-control" id="sound_input" onchange="SoundPick()">
+                    <option value="" selected disabled>Выберите звуковой файл</option>
+                  {% for sound in sounds %}
+                    <option value="{{ sound.id }}">{{ sound.filename }}</option>
+                  {% endfor %}
+                </select>
+              </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
-                <button type="submit" class="btn btn-outline-secondary btn-sm" form="start_call" data-bs-dismiss="modal">Запустить</button>
-            </div>
-        </div>
-    </div>
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
+              <button type="submit" id="play_button" class="btn btn-outline-secondary btn-sm" form="start_call" data-bs-dismiss="modal" disabled>Запустить</button>
+          </div>
+      </div>
+  </div>
 </div>
 <form id="start_call" method="GET"></form>
 {% endblock %}

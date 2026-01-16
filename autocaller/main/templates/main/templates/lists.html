@@ -24,8 +24,8 @@
     cardid='{{list.id}}',
     name='{{list.list_name}}',
     description='{{list.list_description}}',
-    audio_filename='{{list.sound.filename}}',
-    audio_src='{{list.sound.get_url}}',
+    // audio_filename='{{list.sound.filename}}',
+    //audio_src='{{list.sound.get_url}}',
     abon_list='{% for abonent in list.abonents.all %}{{abonent.full_name}};{% endfor %}',
     is_mobile='{{list.main_phone}}',
     is_secondary='{{list.second_phone}}',
@@ -44,7 +44,9 @@
         <p class="card-text">Пароль: {{list.password}}</p>
         <p class="card-text">Количество попыток: {{list.tries_number}}</p>
         <p class="card-text">Количество абонентов: {{list.abonents_count}}</p>
+        <!--
         <p class="card-text">Аудиофайл: {{list.sound.filename}}</p>
+        -->
           {% if list.main_phone %}
           <p class="card-text"> 
             <i class="bi bi-phone"></i> Мобильный
@@ -92,12 +94,12 @@
           <!-- название -->
           <div class="mb-3">
             <label for="filename_input" class="form-label">Введите название</label>
-            <input type="text" class="form-control" id="filename_input" maxlength="20" required name="listname">
+            <input type="text" class="form-control" id="filename_input" maxlength="50" required name="listname">
           </div>
           <!-- описание -->
           <div class="mb-3">
             <label for="description_input" class="form-label">Введите краткое описание списка</label>
-            <textarea class="form-control" id="description_input" rows="2" required name="list_text" maxlength="100"></textarea>
+            <textarea class="form-control" id="description_input" rows="2" required name="list_text" maxlength="1000"></textarea>
           </div>
           <!-- кодовая комбинация -->
           <div class="mb-3">
@@ -135,6 +137,7 @@
             </div>
           </div>
           <!-- звуковой файл -->
+          <!-- 
           <div class="mb-3">
             <label for="sound_input" class="form-label">Выберите звуковой файл сообщения</label>
             <div class="input mb-3">
@@ -145,7 +148,8 @@
                 {% endfor %}
               </datalist>
             </div>
-          </div>
+          </div> 
+          -->
           <!-- абоненты -->
           <div class="mb-3">
             <label for="abonents_input" class="form-label">Выберите абонентов для оповещения</label>
@@ -218,11 +222,13 @@
           <p id="password_modal"></p>
         </div>
         <!-- аудио -->
+        <!--
         <div class="mb-3">
           <label for="audio_filename" class="form-label">Аудиофайл:</label>
           <p id="audio_filename"></p>
           <audio id="audiofile_id" controls preload="metadata"></audio>
         </div>
+        -->
         <!-- список направлений для вызова -->
         <div class="edit_modal_element">
           <label class="form-label">Вызов:</label>

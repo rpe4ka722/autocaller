@@ -254,3 +254,7 @@
   position: static;
   display: block;
 }
+
+#error_screen {
+  text-align: center;
+}

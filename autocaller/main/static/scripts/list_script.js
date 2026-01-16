@@ -1,12 +1,10 @@
-function EditFunc(cardid, name, description, audio_filename, audio_src, abon_list, is_mobile, is_secondary, is_work, accept_code, password) {
+function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary, is_work, accept_code, password) {
     let list_id = 'card_' + cardid;
     let card = document.getElementById(list_id);
     let myModal = document.getElementById('EditList');
     let delete_form = document.getElementById('delete_list_form');
     let title = document.getElementById('EditListModalTitle');
     let list_description = document.getElementById('list_description');
-    let audio_filename_block = document.getElementById('audio_filename');
-    let audio_url_block = document.getElementById('audiofile_id');
     let timestamp = new Date().getTime();
     let abon_set = abon_list.split(';').slice(0, -1)
     let call_paragraph_div = document.getElementById('call_paragaph');
@@ -49,8 +47,6 @@ function EditFunc(cardid, name, description, audio_filename, audio_src, abon_lis
     list_description.innerHTML = description;
     accept_code_modal.innerHTML = accept_code;
     password_modal.innerHTML = password;
-    audio_filename_block.innerHTML = audio_filename;
-    audio_url_block.src = audio_src + '/?' + timestamp;
     delete_form.action = 'delete_list/' + cardid;
     card.style = 'box-shadow: 2px 2px 4px rgba(10, 10, 10, 0.5); transform: translate(-5px, -5px);';
     myModal.addEventListener('hide.bs.modal', () => {
@@ -140,9 +136,7 @@ form.addEventListener('submit', function(event) {
     event.preventDefault();
     let xhr = new XMLHttpRequest();
     let formData = new FormData(form);
-    let sound_input = document.getElementById('sound_input').value;
-    let option = document.querySelector("#sound_add option[value='" + sound_input + "']");
-    if (option != null && abonent_list.length !== 0) {
+    if (abonent_list.length !== 0)    {
         formData.append('abonents_list', abonent_list);
         data = formData;
         xhr.open('POST','/create_list', false);
@@ -157,16 +151,9 @@ form.addEventListener('submit', function(event) {
         }
     } else if (abonent_list.length === 0) {
         alert('Вы не добавили абонентов в список');
-    } else if (option == null) {
-        alert('Выберите звуковой файл из списка');
     }
     else {
         null;
     }
   });
 
-
-
-
-    
-    

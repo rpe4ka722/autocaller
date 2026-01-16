@@ -263,3 +263,7 @@
   color: lightgray;
   font-size: 12px;
 }
+
+.sound-input {
+  padding: 1rem;
+}

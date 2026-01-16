@@ -72,8 +72,8 @@ class SoundFile(models.Model):
     
 
 class CallList(models.Model):
-    list_name = models.CharField(verbose_name="Имя", max_length=20)
-    list_description = models.CharField(verbose_name="Фамилия", max_length=100)
+    list_name = models.CharField(verbose_name="Имя", max_length=50)
+    list_description = models.CharField(verbose_name="Фамилия", max_length=1000)
     abonents = models.ManyToManyField(Abonent)
     last_edit_user = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
     last_edit_time = models.DateTimeField(auto_now_add=True)
