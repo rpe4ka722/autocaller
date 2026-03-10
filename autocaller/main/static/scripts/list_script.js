@@ -13,6 +13,9 @@ function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary,
     let accept_code_block = document.getElementById('accept_code_modal');
     let password_block = document.getElementById('password_modal');
 
+    call_paragraph_div.innerHTML = '';
+    abonents_list_ul.innerHTML = '';
+
     if (is_mobile === 'True') {
         let paragraph = document.createElement('p');
         paragraph.class = 'call_method_id';

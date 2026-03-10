@@ -267,3 +267,7 @@
 .sound-input {
   padding: 1rem;
 }
+
+.password_input_class {
+  display: none;
+}
