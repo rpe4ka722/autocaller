@@ -1,4 +1,4 @@
-function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary, is_work, accept_code, password) {
+function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary, is_work, accept_code, password, is_password) {
     let list_id = 'card_' + cardid;
     let card = document.getElementById(list_id);
     let myModal = document.getElementById('EditList');
@@ -10,15 +10,18 @@ function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary,
     let call_paragraph_div = document.getElementById('call_paragaph');
     let abonents_list_ul= document.getElementById('abonents_list_id');
     let edit_button = document.getElementById('edit_button_url');
-    let accept_code_block = document.getElementById('accept_code_modal');
-    let password_block = document.getElementById('password_modal');
+    let accept_code_modal = document.getElementById('accept_code_modal');
+    let password_modal = document.getElementById('password_modal');
+    let password_block = document.getElementById('password_edit');
 
     call_paragraph_div.innerHTML = '';
     abonents_list_ul.innerHTML = '';
 
+    password_block.style.display = (is_password === 'True') ? 'block' : 'none';
+
     if (is_mobile === 'True') {
         let paragraph = document.createElement('p');
-        paragraph.class = 'call_method_id';
+        paragraph.className = 'call_method_id';
         paragraph.innerHTML = '<i class="bi bi-phone"></i> - на мобильный';
         call_paragraph_div.append(paragraph);
     } else {
@@ -26,7 +29,7 @@ function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary,
     }
     if (is_secondary === 'True') {
         let paragraph = document.createElement('p');
-        paragraph.class = 'call_method_id';
+        paragraph.className = 'call_method_id';
         paragraph.innerHTML = '<i class="bi bi-phone"></i> - на дополнительный';
         call_paragraph_div.append(paragraph);
     } else {
@@ -34,7 +37,7 @@ function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary,
     }
     if (is_work === 'True') {
         let paragraph = document.createElement('p');
-        paragraph.class = 'call_method_id';
+        paragraph.className = 'call_method_id';
         paragraph.innerHTML = '<i class="bi bi-telephone"></i> - на рабочий';
         call_paragraph_div.append(paragraph);
     } else {
@@ -56,7 +59,7 @@ function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary,
         card.style = '';
         call_paragraph_div.innerHTML = '';
         abonents_list_ul.innerHTML = '';
-    })
+    }, { once: true })
 }
 
 function CreateFunc() {

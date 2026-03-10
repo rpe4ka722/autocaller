@@ -47,21 +47,23 @@ function ModalEdit(id, first_name, last_name, patronymic, work_phone_number='-',
         });
 }
 
-let form = document.getElementById("create_abonent");
+function ModalCreate() {
+    let form = document.getElementById("create_abonent");
 
-form.addEventListener('submit', function(event) {
-    event.preventDefault();
-    let xhr = new XMLHttpRequest();
-    let formData = new FormData(form);
-    xhr.open('POST','/create_abonent', false);
-    xhr.send(formData);
-    if (xhr.readyState == 4) {
-        if (xhr.status == 200) {
-            window.open('/abonents', '_parent');
-            } else {
-            alert(xhr.responseText);
-            }    
-        }
-    }); 
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        let xhr = new XMLHttpRequest();
+        let formData = new FormData(form);
+        xhr.open('POST','/create_abonent', false);
+        xhr.send(formData);
+        if (xhr.readyState == 4) {
+            if (xhr.status == 200) {
+                window.open('/abonents', '_parent');
+                } else {
+                alert(xhr.responseText);
+                }    
+            }
+        }); 
+}
 
 

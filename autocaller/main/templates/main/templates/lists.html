@@ -31,7 +31,8 @@
     is_secondary='{{list.second_phone}}',
     is_work='{{list.work_phone}}',
     accept_code='{{list.accept_combination}}', 
-    password='{{list.password}}'
+    password='{{list.password}}',
+    is_password='{{list.is_password}}'
     )">
     <div class="card">
       <div class="card-body">
@@ -226,12 +227,10 @@
           <p id="accept_code_modal"></p>
         </div>
         <!-- пароль -->
-        {% if list.is_password %}
-          <div class="mb-3">
+          <div class="mb-3" id="password_edit">
             <label for="password_modal" class="form-label"> Пароль для прослушивания сообщения:</label>
             <p id="password_modal"></p>
           </div>
-        {% endif %}
         <!-- аудио -->
         <!--
         <div class="mb-3">
