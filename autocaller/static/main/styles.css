@@ -69,7 +69,7 @@
 
 .card {
     width: 20rem; 
-    height: 25rem; 
+    height: 27rem; 
     font-size: smaller;
     line-height: 1rem;
     word-wrap: normal;
@@ -255,6 +255,15 @@
   display: block;
 }
 
-#error_screen {
-  text-align: center;
+.modal-body p {
+  word-break: break-all;
+}
+
+#accept_code_Help {
+  color: lightgray;
+  font-size: 12px;
+}
+
+.sound-input {
+  padding: 1rem;
 }

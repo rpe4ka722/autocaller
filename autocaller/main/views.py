@@ -139,14 +139,13 @@ def abonents(request, msg=''):
 
 @login_required(login_url='account:login')
 def create_abonent(request):
-    print('work')
     dep = request.user.department
     if request.method == 'POST':
         form = AbonentForm(request.POST or None)
         if form.is_valid():
             msg = ''
             cd = form.cleaned_data
-            work_phone_number = cd['work_phone_number']
+            # work_phone_number = cd['work_phone_number']
             if cd['mobile_phone_number'] is not None:
                 mobile_phone_number = '+7' + cd['mobile_phone_number']
             else:
@@ -174,10 +173,10 @@ def create_abonent(request):
                 abon = Abonent.objects.get(secondary_mobile_phone_number=secondary_mobile_phone_number)
                 num = cd['secondary_mobile_phone_number']
                 msg = f'Ошибка! Номер { num } указан как дополнительный для абонента {abon.full_name()}.'
-            elif work_phone_number in work_phone_list:
-                abon = Abonent.objects.get(work_phone_number=work_phone_number)
-                num = cd['work_phone_number']
-                msg = f'Ошибка! Номер { num } указан как дополнительный для абонента {abon.full_name()}.'
+            # elif work_phone_number in work_phone_list:
+            #     abon = Abonent.objects.get(work_phone_number=work_phone_number)
+            #     num = cd['work_phone_number']
+            #     msg = f'Ошибка! Номер { num } указан как рабочий для абонента {abon.full_name()}.'
             else:
                 first_name = cd['first_name']
                 patronymic=cd['patronymic']

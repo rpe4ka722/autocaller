@@ -9,12 +9,10 @@ function Exportreport(id) {
     url = '/report_export/' + id;
     function handle_submit(event) {
         event.preventDefault();
-        console.log('123')
         let xhr = new XMLHttpRequest();
         xhr.open('GET', url, false);
         xhr.send();
         if (xhr.readyState == 4) {
-            console.log('111')
             if (xhr.status == 200) {
                 window.open(url, '_parent');
             }

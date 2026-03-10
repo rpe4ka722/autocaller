@@ -81,7 +81,7 @@ class CallList(models.Model):
     main_phone = models.BooleanField(default=True)
     second_phone = models.BooleanField(default=False)
     work_phone = models.BooleanField(default=False)
-    sound = models.ForeignKey(SoundFile, on_delete=models.CASCADE, null=True)
+    sound = models.ForeignKey(SoundFile, on_delete=models.SET_NULL, null=True)
     accept_combination = models.IntegerField(default=5, validators=[MinValueValidator(0), MaxValueValidator(9)])
     tries_number = models.IntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(3)])
     password = models.IntegerField(default=5, validators=[MinValueValidator(0), MaxValueValidator(9)])
