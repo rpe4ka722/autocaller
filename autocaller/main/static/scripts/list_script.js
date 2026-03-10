@@ -58,11 +58,15 @@ function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary,
 
 function CreateFunc() {
     let card = document.getElementById('create_card');
-    let myModal = document.getElementById('CreateList')
+    let myModal = document.getElementById('CreateList');
+    let form = document.getElementById('create_list_form');
     card.style = 'box-shadow: 2px 2px 4px rgba(10, 10, 10, 0.5); transform: translate(-5px, -5px);';
     myModal.addEventListener('hide.bs.modal', () => {
-        card.style = '';    
-    })
+        card.style = '';
+        form.reset();
+        abonent_list = [];   
+        document.querySelectorAll('.added_abonents_div').forEach(div => div.remove());
+    }, { once: true })
 }
 
 let abonent_list = [];
@@ -129,6 +133,22 @@ function AddAbonentFunc() {
         abonents_input.value = '';
         //вывод итогового списка
         console.log(abonent_list);
+    }
+}
+
+function PasswordFunc() {
+    let checkbox = document.getElementById('is_passwd_switch');
+    let input_area = document.querySelector('.password_input_class');
+    let password_input = document.getElementById('password_input');
+
+    if (checkbox.checked) {
+        input_area.style.display = 'none';
+        password_input.required = false;
+        password_input.value = '';
+    } else {
+        input_area.style.display = 'block';
+        password_input.required = true;
+        
     }
 }
 

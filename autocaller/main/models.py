@@ -84,7 +84,8 @@ class CallList(models.Model):
     sound = models.ForeignKey(SoundFile, on_delete=models.SET_NULL, null=True)
     accept_combination = models.IntegerField(default=5, validators=[MinValueValidator(0), MaxValueValidator(9)])
     tries_number = models.IntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(3)])
-    password = models.IntegerField(default=5, validators=[MinValueValidator(0), MaxValueValidator(9)])
+    password = models.IntegerField(default=None, validators=[MinValueValidator(0), MaxValueValidator(9)], null=True)
+    is_password = models.BooleanField(default=False)
 
 
 

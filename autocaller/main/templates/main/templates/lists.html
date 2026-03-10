@@ -41,7 +41,9 @@
         <h5 class="card-title">{{list.list_name}}</h5>
         <p class="card-text">{{list.list_description}}</p>
         <p class="card-text">Комбинация уведомления: {{list.accept_combination}}</p>
-        <p class="card-text">Пароль: {{list.password}}</p>
+        {% if list.is_password %}
+          <p class="card-text">Пароль: {{list.password}}</p>
+        {% endif %}
         <p class="card-text">Количество попыток: {{list.tries_number}}</p>
         <p class="card-text">Количество абонентов: {{list.abonents_count}}</p>
         <!--
@@ -106,10 +108,17 @@
             <label for="accept_code_input" class="form-label">Введите цифру для подтверждения</label>
             <input class="form-control" id="accept_code_input" name="accept_code" maxlength="1" pattern="[0-9]{1}" placeholder="X" required >
           </div>
-          <!-- пароль -->
+          <!-- установка пароля -->
           <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="is_passwd_switch" checked name="is_not_password" onclick="PasswordFunc()">
+              <label class="form-check-label" for="is_passwd_switch">Использовать без пароля</label>
+            </div>
+          <!-- пароль -->
+            <div class="password_input_class">
             <label for="password_input" class="form-label">Введите пароль для прослушивания</label>
-            <input class="form-control" id="password_input" name="password_input" maxlength="1" pattern="[0-9]{1}" placeholder="X" required >
+            <input class="form-control" id="password_input" name="password_input" maxlength="1" pattern="[0-9]{1}" placeholder="X">
+            </div>
           </div>
           <!-- количество попыток -->
           <div class="mb-3">
@@ -217,10 +226,12 @@
           <p id="accept_code_modal"></p>
         </div>
         <!-- пароль -->
-        <div class="mb-3">
-          <label for="password_modal" class="form-label"> Пароль для прослушивания сообщения:</label>
-          <p id="password_modal"></p>
-        </div>
+        {% if list.is_password %}
+          <div class="mb-3">
+            <label for="password_modal" class="form-label"> Пароль для прослушивания сообщения:</label>
+            <p id="password_modal"></p>
+          </div>
+        {% endif %}
         <!-- аудио -->
         <!--
         <div class="mb-3">

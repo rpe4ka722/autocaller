@@ -47,7 +47,9 @@
           <h5 class="card-title">{{list.list_name}}</h5>
           <p class="card-text">{{list.list_description}}</p>
           <p class="card-text">Комбинация уведомления: {{list.accept_combination}}</p>
-          <p class="card-text">Пароль: {{list.password}}</p>
+          {% if list.is_password %}
+            <p class="card-text">Пароль: {{list.password}}</p>
+          {% endif %}
           <p class="card-text">Количество абонентов: {{list.abonents_count}}</p>
           <!-- <p class="card-text">Аудиофайл: {{list.sound.filename}}</p> -->
             {% if list.main_phone %}

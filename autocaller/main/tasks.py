@@ -8,7 +8,7 @@ import time, datetime, configparser
 
 
 class AMImanager:
-    def __init__(self, number,type, sound, code, report, abonent, password):
+    def __init__(self, number,type, sound, code, report, abonent, password, is_password):
         config = configparser.ConfigParser()
         config.read('./django-files/config.ini')
         if asyncio.get_event_loop().is_closed():
@@ -33,6 +33,7 @@ class AMImanager:
         self.sound = sound
         self.code = code
         self.password = password
+        self.is_password = '1' if is_password else '0'
         self.status = True
         self.report = Report.objects.get(id=report)
         self.call_object = None
@@ -56,7 +57,7 @@ class AMImanager:
         'Exten': 'call',
         'Priority': '1',
         'CallerID': 'Autocaller',
-        'Variable': f'data={self.sound},code={self.code},pass={self.password}',
+        'Variable': f'data={self.sound},code={self.code},pass={self.password},is_pass={self.is_password}',
         })
 
         counter = 0
@@ -190,7 +191,7 @@ class AMImanager:
 
 
 @shared_task() 
-def abonent_call(sound, code, report_id, abonent_id, call_list_id, password):
+def abonent_call(sound, code, report_id, abonent_id, call_list_id, password, is_password):
     print(f'abon_id {abonent_id}')
     print(f'report_id {report_id}')
     print(f'abon_id {abonent_id}')
@@ -202,7 +203,16 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id, password):
     while current_try <= call_list.tries_number and not call_object:
         if call_list.main_phone and abonent.mobile_phone_number:
             print(f'Оповещение по номеру {abonent.mobile_phone_number} начато')
-            manager = AMImanager(number=abonent.mobile_phone_number, type='мобильный', sound=sound, code=code, report=report_id, abonent=abonent_id, password=password)
+            manager = AMImanager(
+                number=abonent.mobile_phone_number,
+                type='мобильный',
+                sound=sound,
+                code=code,
+                report=report_id,
+                abonent=abonent_id,
+                password=password,
+                is_password=is_password
+                )
             try:
                 manager.run() 
             except:
@@ -214,7 +224,16 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id, password):
             print(f'Оповещение по номеру {abonent.mobile_phone_number} завершено')
         if call_list.second_phone and not call_object and abonent.secondary_mobile_phone_number:
             print(f'Оповещение по номеру {abonent.secondary_mobile_phone_number} начато')
-            manager = AMImanager(number=abonent.secondary_mobile_phone_number, type='дополнительный', sound=sound, code=code, report=report_id, abonent=abonent_id, password=password)
+            manager = AMImanager(
+                number=abonent.secondary_mobile_phone_number,
+                type='дополнительный',
+                sound=sound,
+                code=code,
+                report=report_id,
+                abonent=abonent_id,
+                password=password,
+                is_password=is_password
+                )
             try:
                 manager.run()
             except:
@@ -226,7 +245,16 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id, password):
             print(f'Оповещение по номеру {abonent.secondary_mobile_phone_number} завершено')
         if call_list.work_phone and not call_object and abonent.work_phone_number:
             print(f'Оповещение по номеру {abonent.work_phone_number} начато')
-            manager = AMImanager(number=abonent.work_phone_number, type='рабочий', sound=sound, code=code, report=report_id, abonent=abonent_id, password=password)
+            manager = AMImanager(
+                number=abonent.work_phone_number,
+                type='рабочий',
+                sound=sound,
+                code=code,
+                report=report_id,
+                abonent=abonent_id,
+                password=password,
+                is_password=is_password
+                )
             try:
                 manager.run()
             except:
@@ -253,12 +281,13 @@ def list_call(call_list_id, report_id):
         print(sound)
         code = call_list.accept_combination
         password = call_list.password
+        is_password = call_list.is_password
         results = []
         print(f'Лист {call_list.list_name} начат')
         for abonent in call_list.abonents.all():
             time.sleep(1)
             abonent_id = abonent.id
-            res = abonent_call.apply_async(args=[sound, code, report.id, abonent_id, call_list_id, password,], queue='celery')
+            res = abonent_call.apply_async(args=[sound, code, report.id, abonent_id, call_list_id, password, is_password], queue='celery')
             print(f'Запущено оповещение абонента {abonent.full_name()}')
             results.append(str(res))
         report.call_queue = len(results)

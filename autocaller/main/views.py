@@ -108,7 +108,7 @@ def ping(request):
        s = requests.Session() 
        config = configparser.ConfigParser()
        config.read('./django-files/config.ini')
-       print(config['asterisk']['host'])
+       #print(config['asterisk']['host'])
        response = s.get("http://" + config['asterisk']['host'] + ":" + config['asterisk']['http_port'] + "/asterisk/rawman?action=login&username=" 
                          + config['asterisk']['username'] + "&secret=" + config['asterisk']['secret'], timeout=0.1)
        response = s.get("http://" + config['asterisk']['host'] + ":" + config['asterisk']['http_port'] +  "/asterisk/rawman?action=PJSIPShowRegistrationsOutbound", timeout=0.1)
@@ -366,23 +366,28 @@ def lists(request):
 def create_list(request):
     dep = request.user.department
     current_user = request.user
+
     if request.method == 'POST':
-        listname = request.POST['listname']
-        list_text = request.POST['list_text']
-        abonents_list = request.POST['abonents_list'].split(',')
+        listname = request.POST.get('listname')
+        list_text = request.POST.get('list_text')
+        abonents_list = request.POST.get('abonents_list').split(',')
         phones = request.POST.getlist('phone')
-        try:
-            accept_code = int(request.POST['accept_code'])
-        except:
-            return HttpResponse('Неизвестная ошибка', status=500)
-        try:
-            password = int(request.POST['password_input'])
-        except:
-            return HttpResponse('Неизвестная ошибка', status=500)
+        is_password_enabled = request.POST.get('is_not_password') != 'on'
+
+        # Валидация числовых полей
         try:
             tries_number = int(request.POST['tries_number'])
         except:
             tries_number = 1
+        try:
+            accept_code = int(request.POST.get('accept_code'))
+            if is_password_enabled:
+                password = int(request.POST.get('password_input'))
+            else:
+                password = None
+        except (ValueError, TypeError):
+            return HttpResponse('Ошибка в числовых данных (код, пароль или кол-во попыток)', status=500)
+
         if abonents_list == '':
             return HttpResponse('Список абонентов не должен быть пустым', status=500)
         else:
@@ -390,16 +395,27 @@ def create_list(request):
             #     sound = SoundFile.objects.get(filename=request.POST['sound_name'], department=dep)
             # except SoundFile.DoesNotExist:
             #     return HttpResponse('Неизвестная ошибка', status=500)
-            list = CallList.objects.create(list_name=listname, list_description=list_text,last_edit_user=current_user,
-                                           accept_combination=accept_code, department=dep, tries_number=tries_number, password = password)
-            if 'mobile' in phones:
-                list.main_phone = True
-            else:
-                list.main_phone = False
-            if 'secondary' in phones:
-                list.second_phone = True
-            if 'work' in phones:
-                list.work_phone = True
+            list = CallList.objects.create(
+                list_name=listname, 
+                list_description=list_text,
+                last_edit_user=current_user,
+                accept_combination=accept_code,
+                department=dep,
+                tries_number=tries_number,
+                password=password,
+                is_password=is_password_enabled,
+                main_phone='mobile' in phones,
+                second_phone='secondary' in phones,
+                work_phone='work' in phones
+                )
+            # if 'mobile' in phones:
+            #     list.main_phone = True
+            # else:
+            #     list.main_phone = False
+            # if 'secondary' in phones:
+            #     list.second_phone = True
+            # if 'work' in phones:
+            #     list.work_phone = True
             list.save()
         all_abonents = Abonent.objects.filter(department = dep)
         for abonent in all_abonents:
@@ -407,9 +423,10 @@ def create_list(request):
             if full_name in abonents_list:
                 try:
                     list.abonents.add(abonent)
-                    list.save()
+                    # list.save()
                 except:
                     return HttpResponse('Невозможно добавить абонента в список. Неизвестная ошибка.', status=500)
+
         return HttpResponse(status=200)
 
 
