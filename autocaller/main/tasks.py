@@ -201,7 +201,28 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id, password, is_
     call_object = None
     current_try = 1
     while current_try <= call_list.tries_number and not call_object:
-        if call_list.main_phone and abonent.mobile_phone_number:
+        if call_list.work_phone and not call_object and abonent.work_phone_number:
+            print(f'Оповещение по номеру {abonent.work_phone_number} начато')
+            manager = AMImanager(
+                number=abonent.work_phone_number,
+                type='рабочий',
+                sound=sound,
+                code=code,
+                report=report_id,
+                abonent=abonent_id,
+                password=password,
+                is_password=is_password
+                )
+            try:
+                manager.run()
+            except:
+                manager.call_object.asterisk_no_answer = True
+                manager.call_object.end_time = datetime.datetime.now()
+            call_object = manager.call_object.confirmed
+            manager.call_object.save()
+            del manager
+            print(f'Оповещение по номеру {abonent.work_phone_number} завершено')
+        if call_list.main_phone and abonent.mobile_phone_number and not call_object:
             print(f'Оповещение по номеру {abonent.mobile_phone_number} начато')
             manager = AMImanager(
                 number=abonent.mobile_phone_number,
@@ -243,27 +264,6 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id, password, is_
             manager.call_object.save()
             del manager
             print(f'Оповещение по номеру {abonent.secondary_mobile_phone_number} завершено')
-        if call_list.work_phone and not call_object and abonent.work_phone_number:
-            print(f'Оповещение по номеру {abonent.work_phone_number} начато')
-            manager = AMImanager(
-                number=abonent.work_phone_number,
-                type='рабочий',
-                sound=sound,
-                code=code,
-                report=report_id,
-                abonent=abonent_id,
-                password=password,
-                is_password=is_password
-                )
-            try:
-                manager.run()
-            except:
-                manager.call_object.asterisk_no_answer = True
-                manager.call_object.end_time = datetime.datetime.now()
-            call_object = manager.call_object.confirmed
-            manager.call_object.save()
-            del manager
-            print(f'Оповещение по номеру {abonent.work_phone_number} завершено')
         current_try += 1
     #report.save() 
     return call_object    

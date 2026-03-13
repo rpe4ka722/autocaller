@@ -505,7 +505,8 @@ def report_export(request, report_id):
                    'Время завершения оповещения': report.end_time.strftime('%X'), 'Запущено пользователем': report.create_by_user.get_full_name(), 'Наименование листа оповещения': report.list.list_name,
                    'Количество абонентов': report.list.abonents_count(),'Оповещено абонентов': report.checked_abonents}
     row_num = 1
-    
+
+   
     font = Font(name='TimesNewRoman', sz=11, bold=True)
     font2 = Font(name='TimesNewRoman', sz=11, bold=False)
     border = Border(left=Side(border_style='thin', color='FF000000'),
@@ -530,6 +531,37 @@ def report_export(request, report_id):
         row_num += 1
     row_num += 1
 
+    calls_with_confirmed_false = Call.objects.filter(report_id=report_id, confirmed=False).values_list('abonent_id', flat=True)
+    calls_with_confirmed_true = Call.objects.filter(report_id=report_id, confirmed=True).values_list('abonent_id', flat=True)
+    confirmed_abonents = Abonent.objects.filter(id__in=calls_with_confirmed_true)
+    unconfirmed_abonents = Abonent.objects.filter(id__in=calls_with_confirmed_false).exclude(id__in=confirmed_abonents)
+
+    ws.cell(row_num, 1, 'Список оповещенных абонентов')
+    ws.cell(row_num, 1).font = font
+    ws.cell(row_num, 1).border = border
+    ws.cell(row_num, 1).alignment = alignment
+    row_num += 1
+    for abonent in confirmed_abonents:
+        ws.cell(row_num, 1, abonent.full_name())
+        ws.cell(row_num, 1).font = font
+        ws.cell(row_num, 1).border = border
+        ws.cell(row_num, 1).alignment = alignment
+        row_num += 1
+    row_num += 2
+
+    ws.cell(row_num, 1, 'Список не оповещенных абонентов')
+    ws.cell(row_num, 1).font = font
+    ws.cell(row_num, 1).border = border
+    ws.cell(row_num, 1).alignment = alignment
+    row_num += 1
+    for abonent in unconfirmed_abonents:
+        ws.cell(row_num, 1, abonent.full_name())
+        ws.cell(row_num, 1).font = font
+        ws.cell(row_num, 1).border = border
+        ws.cell(row_num, 1).alignment = alignment
+        row_num += 1
+    row_num += 2
+
     columns = ['Абонент', 'Тип номера', 'Номер телефона', 'Уведомлен','Введенный код', 'Количество неверных попыток','Ввод пароля','Введенный пароль', 
                'Количество неверных попыток ввода пароля','Время начала вызова', 'Время завершения вызова', 'Ответ абонета', 'Код завершения']
     for col_num in range(len(columns)):
@@ -552,6 +584,7 @@ def report_export(request, report_id):
     row_num += 1
 
     calls = Call.objects.filter(report=report)
+
     for call in calls:
         if call.confirmed:
             conf = 'Да'
