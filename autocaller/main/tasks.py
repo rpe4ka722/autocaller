@@ -194,7 +194,6 @@ class AMImanager:
 def abonent_call(sound, code, report_id, abonent_id, call_list_id, password, is_password):
     print(f'abon_id {abonent_id}')
     print(f'report_id {report_id}')
-    print(f'abon_id {abonent_id}')
     call_list = CallList.objects.get(id=call_list_id)
     #report = Report.objects.get(id=report_id)
     abonent = Abonent.objects.get(id=abonent_id)
@@ -284,7 +283,9 @@ def list_call(call_list_id, report_id):
         is_password = call_list.is_password
         results = []
         print(f'Лист {call_list.list_name} начат')
-        for abonent in call_list.abonents.all():
+        excluded_ids = call_list.exclude_abonents.values_list('id', flat=True)
+
+        for abonent in call_list.abonents.all().exclude(id__in=excluded_ids):
             time.sleep(1)
             abonent_id = abonent.id
             res = abonent_call.apply_async(args=[sound, code, report.id, abonent_id, call_list_id, password, is_password], queue='celery')
@@ -321,8 +322,7 @@ def start_caller(call_list_id, user_id):
     report = Report.objects.create(list=call_list, in_progress=True, create_by_user = user)
     report.save()
     report_id = report.id
-    print(report_id)
-    print('Запуск листа')
+    print(f'Запуск листа {call_list.list_name}')
     list_call.apply_async(args=[call_list_id, report_id], queue='hipri')
     return report_id
 

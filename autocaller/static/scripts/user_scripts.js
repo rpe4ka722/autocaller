@@ -6,7 +6,11 @@ function UserEdit(id, first_name, last_name, patronymic,login, role, department)
     
     first_name_input.value = first_name;
     last_name_input.value = last_name;
-    patronymic_input.value = patronymic;   
+    if (patronymic === null || patronymic === 'None' || patronymic === undefined) {
+        patronymic_input.value = '';
+    } else {
+        patronymic_input.value = patronymic;
+    } 
 
     let edit_abonent_form = document.getElementById("edit_user_form");
     let delete_abonent_form = document.getElementById("delete_user_form");

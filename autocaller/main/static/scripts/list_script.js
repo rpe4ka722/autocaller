@@ -1,4 +1,4 @@
-function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary, is_work, accept_code, password, is_password) {
+async function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary, is_work, accept_code, password, is_password) {
     let list_id = 'card_' + cardid;
     let card = document.getElementById(list_id);
     let myModal = document.getElementById('EditList');
@@ -16,6 +16,10 @@ function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary,
 
     call_paragraph_div.innerHTML = '';
     abonents_list_ul.innerHTML = '';
+
+       
+    exclude_abon_set = await getListInfo(cardid);
+
 
     password_block.style.display = (is_password === 'True') ? 'block' : 'none';
 
@@ -43,10 +47,83 @@ function EditFunc(cardid, name, description, abon_list, is_mobile, is_secondary,
     } else {
         null;
     }
+
     for (let abon of abon_set) {
         let li = document.createElement('li');
-        li.innerHTML = abon;
+        li.style.listStyleType = "none";
+        li.style.padding = "0";
+        abonents_list_ul.style.padding = "0"
+        const isExcluded = exclude_abon_set.includes(abon);
+
+        // Генерируем HTML: если в исключениях — убираем 'checked'
+        li.innerHTML = `
+            <div class="form-check form-switch d-flex gap-2" 
+                style="transition: all 0.3s; ${isExcluded ? 'opacity: 0.5; color: gray;' : ''}">
+                <span>
+                    <input class="form-check-input" type="checkbox" 
+                        id="check_${abon.replaceAll(' ', '_')}" 
+                        ${isExcluded ? '' : 'checked'}>
+                </span>
+                <label class="form-check-label" for="check_${abon.replaceAll(' ', '_')}">
+                    ${abon}
+                </label>
+            </div>
+        `;
+
+        let checkbox = li.querySelector('.form-check-input');
+        let container = li.querySelector('.form-check');
+
+        // Назначаем обработчик события
+        checkbox.onchange = () => {
+            const action = checkbox.checked ? 'include_abonent' : 'exclude_abonent';
+    
+            // Вызываем функцию и передаем checkbox, чтобы вернуть его состояние при ошибке
+            toggleAbonentStatus(action, checkbox.id, checkbox, container, cardid);
+        };
+        
         abonents_list_ul.append(li);
+    }
+ 
+
+        
+
+    // 2. Обновленная функция с аргументами для отката
+    async function toggleAbonentStatus(action, checkbox_id, checkbox, container, cardid) {
+        const url = `/${action}/${cardid}/${checkbox_id}/`;
+        
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (response.ok) {
+                // Если всё хорошо, просто обновляем стили
+                if (checkbox.checked) {
+                    container.style.opacity = "1";
+                    container.style.color = "inherit";
+                } else {
+                    container.style.opacity = "0.5";
+                    container.style.color = "gray";
+                }
+            } else {
+                // ОШИБКА СЕРВЕРА — Возвращаем галочку назад
+                const errorText = await response.text();
+                alert('Ошибка сервера: ' + errorText);
+                
+                // Откатываем состояние чекбокса
+                checkbox.checked = !checkbox.checked; 
+                // Стили не меняем, так как состояние вернулось к исходному
+            }
+        } catch (error) {
+            // ОШИБКА СЕТИ — Тоже откатываем
+            console.error('Ошибка сети:', error);
+            alert('Нет связи с сервером. Изменения не сохранены.');
+            checkbox.checked = !checkbox.checked;
+        }
     }
 
     title.innerHTML = 'Список оповещения ' + name;
@@ -183,3 +260,40 @@ form.addEventListener('submit', function(event) {
     }
   });
 
+
+// Вспомогательная функция для получения CSRF-токена
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+async function getListInfo(cardid) {
+    let exclude_abon_set = []; // Объявляем заранее
+    try {
+        const response = await fetch(`/get_list_details/${cardid}/`);
+        if (!response.ok) throw new Error('Ошибка сети');
+        
+        const data = await response.json();
+        
+        // Разбираем строку, убирая пустые элементы
+        exclude_abon_set = data.exclude_abon_list.split(';').filter(item => item.trim() !== "");
+        
+    } catch (error) {
+        console.error('Ошибка при получении данных:', error);
+        const abonents_list_ul = document.getElementById('abonents_list_id');
+        if (abonents_list_ul) {
+            abonents_list_ul.innerHTML = '<li class="text-danger">Ошибка загрузки статусов</li>';
+        }
+    }
+    return exclude_abon_set; // Теперь переменная доступна
+}

@@ -32,7 +32,7 @@
       <td>{{user.username}}</td>
       <td>{{user.last_name}}</td>
       <td>{{user.first_name}}</td>
-      <td>{{user.patronymic}}</td>
+      <td>{% if user.patronymic is None %}{% else %}{{user.patronymic}}{% endif %}</td>
       {% if adm %}
       <td>{{ user.str_department }}</td>
       {% endif%}

@@ -27,6 +27,7 @@
     // audio_filename='{{list.sound.filename}}',
     //audio_src='{{list.sound.get_url}}',
     abon_list='{% for abonent in list.abonents.all %}{{abonent.full_name}};{% endfor %}',
+    exclude_abon_list='{% for abonent in list.exclude_abonents.all %}{{abonent.full_name}};{% endfor %}',
     is_mobile='{{list.main_phone}}',
     is_secondary='{{list.second_phone}}',
     is_work='{{list.work_phone}}',
@@ -102,7 +103,7 @@
           <!-- описание -->
           <div class="mb-3">
             <label for="description_input" class="form-label">Введите краткое описание списка</label>
-            <textarea class="form-control" id="description_input" rows="2" required name="list_text" maxlength="1000"></textarea>
+            <textarea class="form-control" id="description_input" rows="2" required name="list_text" maxlength="100"></textarea>
           </div>
           <!-- кодовая комбинация -->
           <div class="mb-3">
@@ -247,7 +248,8 @@
         <!-- список абонентов -->
         <div class="mb-3">
           <label class="form-label">Список абонентов:</label>
-          <ul id="abonents_list_id"></ul>
+          <ul id="abonents_list_id">
+          </ul>
         </div>
         <!-- ======================== -->
       </div>

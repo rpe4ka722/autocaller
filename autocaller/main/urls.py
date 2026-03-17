@@ -28,4 +28,7 @@ urlpatterns = [
     path('report_status/<int:report_id>', views.report_status, name='report_status'),
     path('repeat_unconfirmed/<int:report_id>', views.repeat_unconfirmed, name='repeat_unconfirmed'),
     path('404', views.error_page_404, name='error_page_404'),
+    path('exclude_abonent/<int:list_id>/<str:abonent_name>/', views.exclude_abonent, name='exclude_abonent'),
+    path('include_abonent/<int:list_id>/<str:abonent_name>/', views.include_abonent, name='include_abonent'),
+    path('get_list_details/<int:list_id>/', views.get_list_details, name='get_list_details'),
 ]

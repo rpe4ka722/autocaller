@@ -55,11 +55,12 @@
     align-content: space-around;
     justify-content: space-around;
     grid-template-columns: auto auto auto auto;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
 }
 
 .card_child {
     transition: box-shadow 0.5s,transform 0.5s;
+    margin-bottom: 2rem;
 }
 
 .card_child:hover {
@@ -69,7 +70,7 @@
 
 .card {
     width: 20rem; 
-    height: 27rem; 
+    height: 30rem; 
     font-size: smaller;
     line-height: 1rem;
     word-wrap: normal;
@@ -270,4 +271,16 @@
 
 .password_input_class {
   display: none;
+}
+
+#EditListModalTitle {
+  overflow-wrap: break-word;
+  white-space: normal;
+  overflow: hidden;
+}
+
+#play_list_message {
+  overflow-wrap: break-word;
+  white-space: normal;
+  overflow: hidden;
 }

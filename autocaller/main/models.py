@@ -74,7 +74,8 @@ class SoundFile(models.Model):
 class CallList(models.Model):
     list_name = models.CharField(verbose_name="Имя", max_length=50)
     list_description = models.CharField(verbose_name="Фамилия", max_length=1000)
-    abonents = models.ManyToManyField(Abonent)
+    abonents = models.ManyToManyField(Abonent, related_name="included_in_call_lists")
+    exclude_abonents = models.ManyToManyField(Abonent, related_name="excluded_from_call_lists")
     last_edit_user = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
     last_edit_time = models.DateTimeField(auto_now_add=True)
     department = models.CharField(max_length=4)
@@ -91,6 +92,9 @@ class CallList(models.Model):
 
     def abonents_count(self):
         return self.abonents.count()
+
+    def current_abonents_count(self):
+        return self.abonents.count() - self.exclude_abonents.count()
     
 
 class Report(models.Model):

@@ -28,7 +28,7 @@ def index(request):
     sounds = SoundFile.objects.filter(department=dep)
     try:
         rep = Report.objects.get(department=dep, in_progress=True)
-        call_list = rep.list.abonents_count() 
+        call_list = rep.list.abonents_count() - rep.list.exclude_abonents.all().count()
         percents = int(100*(rep.unchecked_abonents + rep.checked_abonents)/call_list)
         context = {'report': rep,'calls_count': call_list, 'abonent_confirmed': rep.checked_abonents, 
                    'abonent_unconfirmed': rep.unchecked_abonents, 'percents': percents}
@@ -54,7 +54,7 @@ def index(request):
 def percent_status(request, report_id):
     try:
         report = Report.objects.get(id=report_id)
-        abonents_count = report.list.abonents.all().count()
+        abonents_count = report.list.abonents.count() - report.list.exclude_abonents.count()
         percents = int(100*(report.unchecked_abonents + report.checked_abonents)/abonents_count)
         if report.in_progress == True:    
             context = {'percents': percents, 'calls_count': abonents_count, 'in_progress': True, 
@@ -75,7 +75,10 @@ def report_status(request, report_id):
         data = []
         abonents_id = []
         for call in calls_with_confirmed_false:
+           
             if call.abonent:
+                print(call.abonent)
+                print(call.abonent.full_name())
                 # Если абонент существует, получаем его данные
                 abonent_data = {
                     "full_name": call.abonent.full_name(),
@@ -83,6 +86,7 @@ def report_status(request, report_id):
                 if abonent_data not in data:
                     data.append(abonent_data)
         context = {'unconfirmed_abonents': data}
+        print(data)
         return  JsonResponse(context)
     except Report.DoesNotExist:
         return HttpResponse('Неизвестная ошибка', status=500)
@@ -129,10 +133,10 @@ def abonents(request, msg=''):
     dep = request.user.department
     adm = False
     if dep == 'ALL':
-        objects = Abonent.objects.all()
+        objects = Abonent.objects.all().order_by('last_name')
         adm = True
     else:
-        objects = Abonent.objects.filter(department=dep)
+        objects = Abonent.objects.filter(department=dep).order_by('last_name')
     context = {'objects': objects, 'msg': msg, 'adm': adm}
     return render(request, 'main/templates/abonent.html', context)
 
@@ -245,10 +249,10 @@ def edit_abonent(request, id):
                     abon = Abonent.objects.get(secondary_mobile_phone_number=secondary_mobile_phone_number)
                     num = cd['secondary_mobile_phone_number']
                     msg = f'Ошибка! Номер { num } указан как дополнительный для абонента {abon.full_name()}.'
-                elif work_phone_number in work_phone_list and work_phone_number is not None:
-                    abon = Abonent.objects.get(work_phone_number=work_phone_number)
-                    num = cd['work_phone_number']
-                    msg = f'Ошибка! Номер { num } указан как дополнительный для абонента {abon.full_name()}.'
+                # elif work_phone_number in work_phone_list and work_phone_number is not None:
+                #     abon = Abonent.objects.get(work_phone_number=work_phone_number)
+                #     num = cd['work_phone_number']
+                #     msg = f'Ошибка! Номер { num } указан как дополнительный для абонента {abon.full_name()}.'
                 else:
                     first_name = cd['first_name']
                     patronymic=cd['patronymic']
@@ -361,6 +365,84 @@ def lists(request):
     response = render(request, 'main/templates/lists.html', context)
     return response
 
+@login_required(login_url='account:login')
+def exclude_abonent(request, list_id, abonent_name):
+    # 1. Получаем список обзвона
+    current_list = get_object_or_404(CallList, id=list_id)
+    
+    # 2. Очищаем имя 
+    clean_name = abonent_name.replace('check_', '').replace('_', ' ').strip()
+    
+    # Разделяем строку на части (Фамилия Имя Отчество)
+    parts = clean_name.split()
+    
+    try:
+        if len(parts) >= 3:
+            abonent = Abonent.objects.get(
+                last_name=parts[0], 
+                first_name=parts[1], 
+                patronymic=parts[2]
+            )
+        elif len(parts) == 2:
+            abonent = Abonent.objects.get(
+                last_name=parts[0], 
+                first_name=parts[1]
+            )
+        elif len(parts) == 1:
+            abonent = Abonent.objects.get(last_name=parts[0])
+        else:
+            return HttpResponse("Некорректный формат имени", status=400)
+
+        # 4. Добавляем в ManyToMany поле исключений
+        current_list.exclude_abonents.add(abonent)
+        return HttpResponse("Абонент успешно исключен", status=200)
+
+    except Abonent.DoesNotExist:
+        return HttpResponse(f"Абонент '{clean_name}' не найден в базе", status=404)
+    except Abonent.MultipleObjectsReturned:
+        return HttpResponse("Найдено несколько абонентов с таким именем", status=400)
+    except Exception as e:
+        return HttpResponse(f"Ошибка: {str(e)}", status=500)
+
+
+@login_required(login_url='account:login')
+def include_abonent(reques, list_id, abonent_name):
+    # 1. Получаем список обзвона
+    current_list = get_object_or_404(CallList, id=list_id)
+    
+    # 2. Очищаем имя 
+    clean_name = abonent_name.replace('check_', '').replace('_', ' ').strip()
+    
+    # Разделяем строку на части (Фамилия Имя Отчество)
+    parts = clean_name.split()
+    
+    try:
+        if len(parts) >= 3:
+            abonent = Abonent.objects.get(
+                last_name=parts[0], 
+                first_name=parts[1], 
+                patronymic=parts[2]
+            )
+        elif len(parts) == 2:
+            abonent = Abonent.objects.get(
+                last_name=parts[0], 
+                first_name=parts[1]
+            )
+        elif len(parts) == 1:
+            abonent = Abonent.objects.get(last_name=parts[0])
+        else:
+            return HttpResponse("Некорректный формат имени", status=400)
+
+        # 4. Добавляем в ManyToMany поле исключений
+        current_list.exclude_abonents.remove(abonent)
+        return HttpResponse("Абонент успешно включен в список", status=200)
+
+    except Abonent.DoesNotExist:
+        return HttpResponse(f"Абонент '{clean_name}' не найден в базе", status=404)
+    except Abonent.MultipleObjectsReturned:
+        return HttpResponse("Найдено несколько абонентов с таким именем", status=400)
+    except Exception as e:
+        return HttpResponse(f"Ошибка: {str(e)}", status=500)
 
 @login_required(login_url='account:login')
 def create_list(request):
@@ -647,3 +729,15 @@ def report_abon_status(request, report_id):
 def error_page_404(request):
     return render(request, 'main/templates/404.html')
     
+
+@login_required
+def get_list_details(request, list_id):
+    obj = get_object_or_404(CallList, id=list_id)
+    # Формируем строку ФИО через разделитель
+    excluded_names = ";".join([a.full_name() for a in obj.exclude_abonents.all()])
+    if excluded_names:
+        excluded_names += ";"
+        
+    return JsonResponse({
+        'exclude_abon_list': excluded_names
+    })
