@@ -27,7 +27,6 @@
     // audio_filename='{{list.sound.filename}}',
     //audio_src='{{list.sound.get_url}}',
     abon_list='{% for abonent in list.abonents.all %}{{abonent.full_name}};{% endfor %}',
-    exclude_abon_list='{% for abonent in list.exclude_abonents.all %}{{abonent.full_name}};{% endfor %}',
     is_mobile='{{list.main_phone}}',
     is_secondary='{{list.second_phone}}',
     is_work='{{list.work_phone}}',

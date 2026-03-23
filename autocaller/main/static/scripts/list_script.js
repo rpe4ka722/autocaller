@@ -22,6 +22,13 @@ async function EditFunc(cardid, name, description, abon_list, is_mobile, is_seco
 
 
     password_block.style.display = (is_password === 'True') ? 'block' : 'none';
+    title.innerHTML = 'Список оповещения ' + name;
+    list_description.innerHTML = description;
+    console.log(accept_code);
+    accept_code_modal.innerHTML = accept_code;
+    password_modal.innerHTML = password;
+    delete_form.action = 'delete_list/' + cardid;
+    card.style = 'box-shadow: 2px 2px 4px rgba(10, 10, 10, 0.5); transform: translate(-5px, -5px);';
 
     if (is_mobile === 'True') {
         let paragraph = document.createElement('p');
@@ -126,12 +133,7 @@ async function EditFunc(cardid, name, description, abon_list, is_mobile, is_seco
         }
     }
 
-    title.innerHTML = 'Список оповещения ' + name;
-    list_description.innerHTML = description;
-    accept_code_modal.innerHTML = accept_code;
-    password_modal.innerHTML = password;
-    delete_form.action = 'delete_list/' + cardid;
-    card.style = 'box-shadow: 2px 2px 4px rgba(10, 10, 10, 0.5); transform: translate(-5px, -5px);';
+
     myModal.addEventListener('hide.bs.modal', () => {
         card.style = '';
         call_paragraph_div.innerHTML = '';
