@@ -546,14 +546,18 @@ def start_list(request, list_id, sound_id):
             call_list.save()
         except CallList.DoesNotExist:
             return redirect('main:error_page_404')
-        list = CallList.objects.get
+        
         report_id = start_caller.apply_async(args=[list_id, user_id], queue='hipri', routing_key='hipri')
         print(f'Старт листа вью {report_id}')
         while True:
              if report_id.ready():
                  break
              time.sleep(0.05)
-        report = Report.objects.get(id=report_id.result)
+        if report_id:
+            report = Report.objects.get(id=report_id.result)
+            response = redirect('main:index')
+        else: 
+            responce = HttpResponse('Неизвестная ошибка.', status=500)
         print('Выход из вью')
         response = redirect('main:index')
         return response

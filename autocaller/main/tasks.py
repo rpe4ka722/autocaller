@@ -5,6 +5,7 @@ from main.panoramisk import CallManager
 from main.models import Call, CallList, Report, CustomUser, Abonent
 from asgiref.sync import sync_to_async
 import time, datetime, configparser
+from django.db import transaction
 
 
 class AMImanager:
@@ -259,6 +260,7 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id, password, is_
                     manager.call_object.save()
             
         current_try += 1 # Переходим к следующей попытке обхода всех номеров
+        time.sleep(0.5)
     
     # 4. Возвращаем итоговый результат (True/False)
     return confirmed
@@ -268,45 +270,66 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id, password, is_
 @shared_task() 
 def list_call(call_list_id, report_id):
     """Проходит по всем абонентам в списке и запускает подзадачи"""
-    print('Обзвон листа')
-    print(report_id)
+    print(f'Обзвон листа {report_id}')
+
     try:
+        # Шаг 1: Инициализация данных
         call_list = CallList.objects.get(id=call_list_id)
         report = Report.objects.get(id=report_id)
+
+        # Подготовка пути к звуковому файлу (обрезаем расширение, если нужно для телефонии)
         sound = call_list.sound.get_full_path()[:-4]
-        print(sound)
+
+        # Извлекаем параметры обзвона
         code = call_list.accept_combination
         password = call_list.password
         is_password = call_list.is_password
-        results = []
-        print(f'Лист {call_list.list_name} начат')
-        excluded_ids = call_list.exclude_abonents.values_list('id', flat=True)
 
-        for abonent in call_list.abonents.all().exclude(id__in=excluded_ids):
+        results = [] # Список для хранения ID запущенных задач (Task IDs)
+
+        print(f'Лист {call_list.list_name} начат')
+
+        # Шаг 2: Фильтрация абонентов
+        # Исключаем тех, кто находится в списке exclude_abonents
+        excluded_ids = call_list.exclude_abonents.values_list('id', flat=True)
+        abonent_ids = call_list.abonents.all().exclude(id__in=excluded_ids).values_list('id', flat=True)
+
+        # Основной цикл запуска звонков
+        for abonent_id in abonent_ids:
             time.sleep(1)
-            abonent_id = abonent.id
             res = abonent_call.apply_async(args=[sound, code, report.id, abonent_id, call_list_id, password, is_password], queue='celery')
-            print(f'Запущено оповещение абонента {abonent.full_name()}')
+
+            # Сохраняем ID задачи в список, чтобы потом проверить результат
             results.append(str(res))
+
+        # Обновляем количество задач в очереди отчета    
         report.call_queue = len(results)
         report.save()
+
+        # Шаг 3: Мониторинг выполнения (Ожидание результатов)
         while results:
-            for result in results[:]:
-                res_obj = AsyncResult(id=result)
+
+            for result_id in results[:]:
+                res_obj = AsyncResult(id=result_id)
                 if res_obj.ready():
                 # Здесь .result будет содержать именно то, что вернул abonent_call (True/False)
-                    is_confirmed = res_obj.result 
-                    results.remove(result)
+
+                    if res_obj.successful():
+                        is_confirmed = res_obj.result
+                        results.remove(result_id)
+                    else: 
+                        is_confirmed = False
         
-                if is_confirmed:
-                     report.checked_abonents += 1
-                else:
-                    report.unchecked_abonents += 1
-        
-                report.call_queue = len(results)
-                report.save()
+                    if is_confirmed:
+                        report.checked_abonents += 1
+                    else:
+                        report.unchecked_abonents += 1
+
+                    report.save()
+                    report.call_queue = len(results)
 
             time.sleep(0.5)
+
         report.in_progress = False
         report.end_time = datetime.datetime.now()
         call_list = report.list
@@ -317,17 +340,36 @@ def list_call(call_list_id, report_id):
         return 'Неизвестная ошибка'
     
 
-@shared_task() 
-def start_caller(call_list_id, user_id):
-    call_list = CallList.objects.get(id=call_list_id)
-    user = CustomUser.objects.get(id=user_id)
-    report = Report.objects.create(list=call_list, in_progress=True, create_by_user = user)
-    report.save()
-    report_id = report.id
-    print(f'Запуск листа {call_list.list_name}')
-    list_call.apply_async(args=[call_list_id, report_id], queue='hipri')
-    return report_id
+@shared_task(bind=True, max_retries=3)
+def start_caller(self, list_id, user_id):
+    try:
+        # Используем атомарную транзакцию для чистоты данных
+        with transaction.atomic():
+            call_list = CallList.objects.select_related('sound').get(id=list_id)
+            user = CustomUser.objects.get(id=user_id)
+            
+            # Создаем отчет
+            report = Report.objects.create(
+                list=call_list, 
+                in_progress=True, 
+                create_by_user=user
+            )
+            report_id = report.id
 
+        print(f'Инициализация обзвона для списка: {call_list.list_name}')
+
+        # Запускаем следующую задачу ТОЛЬКО после того, как отчет точно сохранился в БД
+        transaction.on_commit(
+            lambda: list_call.apply_async(
+                args=[list_id, report_id], 
+                queue='hipri'
+            )
+        )
+        
+        return report_id
+
+    except (CallList.DoesNotExist, CustomUser.DoesNotExist) as e:
+        return None
 
 
 
