@@ -14,13 +14,12 @@ class AMImanager:
         config = configparser.ConfigParser()
         config.read('./django-files/config.ini')
 
-        # Настройка асинхронного цикла (Event Loop)
-        # AMI требует асинхронности для обработки потока событий в реальном времени
+        # 1. Сначала получаем текущий цикл событий
         try:
             self.loop = asyncio.get_running_loop()
         except RuntimeError:
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
+            # Если цикл еще не запущен (редко в Celery, но бывает), берем новый
+            self.loop = asyncio.get_event_loop()
 
         # Инициализация менеджера звонков (библиотека panoramisk)
         self.manager = CallManager(
@@ -54,17 +53,19 @@ class AMImanager:
 
         self.call_object = None # Ссылка на запись Call в БД
         self.action_id = None # # ID для отслеживания конкретной команды Originate
-        self.linkedid = None # # Уникальный ID канала в самом Asterisk
+        self.linkedid = None # Уникальный ID канала в самом Asterisk
+        self.stop_event = None # Событие для остановки ожидания, когда звонок завершен
 
-        # Событие для остановки ожидания, когда звонок завершен
-        self.stop_event = asyncio.Event(loop=self.loop)
+        
         
 
             
     async def handle_call(self):
         """Основной метод запуска звонка"""
 
-
+        # Событие для остановки ожидания, когда звонок завершен
+        self.stop_event = asyncio.Event()
+        
         # 1. Создаем запись о попытке звонка в БД (используем sync_to_async для работы с ORM)
         self.call_object = await sync_to_async(Call.objects.create)(
             abonent_number=self.number, 
@@ -77,56 +78,68 @@ class AMImanager:
         # 2. Формируем уникальный ActionID, чтобы найти этот звонок в потоке событий
         self.action_id = f"django_call_{self.call_object.id}"
         
-        # Подключаемся к Asterisk
-        await self.manager.connect()
-
-
-        # await asyncio.sleep(1)
-
-        # 3. Отправка команды Originate (инициировать вызов)
-        # Asterisk позвонит на Channel и при ответе отправит его в Context 'autocaller'
-        call = await self.manager.send_originate({
-            'Action': 'Originate',
-            'Timeout': '30000',
-            'ActionID': self.action_id,
-            'Channel': f'PJSIP/{self.number}{self.prefix}',
-            'Context': 'autocaller',
-            'Exten': 'call',
-            'Priority': '1',
-            'CallerID': 'Autocaller',
-            # Передаем переменные в Dialplan Asterisk (путь к звуку, коды и т.д.)
-            'Variable': f'data={self.sound},code={self.code},pass={self.password},is_pass={self.is_password}',
-        })
-
-
-        # 4. Ожидание завершения или таймаута (180 секунд)
+        
         try:
+            # Подключаемся к Asterisk
+            await self.manager.connect()
+            # await asyncio.sleep(1)
+
+            # 3. Отправка команды Originate (инициировать вызов)
+            # Asterisk позвонит на Channel и при ответе отправит его в Context 'autocaller'
+            call = await self.manager.send_originate({
+                'Action': 'Originate',
+                'Timeout': '30000',
+                'ActionID': self.action_id,
+                'Channel': f'PJSIP/{self.number}{self.prefix}',
+                'Context': 'autocaller',
+                'Exten': 'call',
+                'Priority': '1',
+                'CallerID': 'Autocaller',
+                # Передаем переменные в Dialplan Asterisk (путь к звуку, коды и т.д.)
+                'Variable': f'data={self.sound},code={self.code},pass={self.password},is_pass={self.is_password}',
+            })
+
+            # 4. Ожидание завершения или таймаута (180 секунд)
             await asyncio.wait_for(self.stop_event.wait(), timeout=180.0)
+
         except asyncio.TimeoutError:
             print(f'Таймаут для звонка {self.call_object.id}')
             self.call_object.call_timeout = True
-            self.call_object.call_not_answered = True
             self.call_object.end_time = datetime.datetime.now()
+        except Exception as e:
+            print(f"Ошибка в handle_call: {e}")
+            self.call_object.call_error = True
+        finally:
+            # 5. Финализация
+            self.call_object.end_time = datetime.datetime.now()
+            # 5. Сохраняем финальные результаты в БД и закрываем соединение
+            await sync_to_async(self.call_object.save)(update_fields=['end_time', 'call_error', 'call_timeout'])
+            if self.manager:
+                self.manager.close()
 
-        # 5. Сохраняем финальные результаты в БД и закрываем соединение
-        await sync_to_async(self.call_object.save)()
-        self.manager.close()
      
 
     async def handle_events(self, manager, message):
         """Обработчик всех входящих событий от Asterisk"""
 
+
+        print(f"EVENT: {message.event} | ActionID: {message.get('ActionID')} | Linkedid: {getattr(message, 'Linkedid', None)} | Uniqueid: {getattr(message, 'Uniqueid', None)}")
+        
         # Обработка события Registry от Asterisk
         # Это происходит, когда транк (канал связи) не может авторизоваться
         if message.event == 'Registry' and message.status == 'Rejected':
             self.call_object.ats_no_answer = True
             self.stop_event.set()
 
+        # Финализация при ошибке Originate (если абонент сразу недоступен)
+        if message.event.lower() == 'originateresponse' and message.Response == 'Failure':
+            self.call_object.call_error = True
+            self.stop_event.set()
 
         # А) Идентификация канала: ActionID -> Linkedid
         msg_action_id = message.get('ActionID')
-        if message.event == 'Newchannel' and msg_action_id == self.action_id:
-            self.linkedid = message.Linkedid
+        if message.event in ('Newchannel', 'Newstate') and msg_action_id == self.action_id:
+            self.linkedid = getattr(message, 'Uniqueid', None) or getattr(message, 'Linkedid', None)
             print(f"Связь: {self.action_id} <-> {self.linkedid}")
 
         # Б) Фильтрация событий по Linkedid
@@ -189,6 +202,7 @@ class AMImanager:
                 else:
                     self.call_object.call_error = True
                 
+                await sync_to_async(self.call_object.save)(update_fields=['end_code', 'call_not_answered', 'call_error', 'call_rejected', 'call_no_response'])
                 self.stop_event.set() # Пробуждаем handle_call
 
         # В) Ошибки регистрации или системы
