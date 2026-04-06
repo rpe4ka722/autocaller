@@ -57,7 +57,7 @@ class AMImanager:
         self.linkedid = None # # Уникальный ID канала в самом Asterisk
 
         # Событие для остановки ожидания, когда звонок завершен
-        self.stop_event = asyncio.Event()
+        self.stop_event = asyncio.Event(loop=self.loop)
         
 
             
