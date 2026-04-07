@@ -141,7 +141,7 @@ class AMImanager:
 
         # А) Идентификация канала: ActionID -> Linkedid
         msg_action_id = message.get('ActionID')
-        if message.event in ('OriginateResponce') and msg_action_id == self.action_id:
+        if message.event=='OriginateResponce' and msg_action_id == self.action_id:
             if getattr(message, 'Responce', None)=='Succes':
                 self.linkedid = getattr(message, 'Uniqueid', None) or getattr(message, 'Linkedid', None)
                 print(f"Связь: {self.action_id} <-> {self.linkedid}")
