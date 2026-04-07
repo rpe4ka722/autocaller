@@ -87,10 +87,12 @@ class AMImanager:
 
             # 3. Отправка команды Originate (инициировать вызов)
             # Asterisk позвонит на Channel и при ответе отправит его в Context 'autocaller'
+
+            print(f'Отправляем Originate action_id = {self.action_id}')
             call = await self.manager.send_originate({
                 'Action': 'Originate',
                 'Timeout': '30000',
-                'ActionID': f'{self.action_id}',
+                'ActionID': self.action_id,
                 'Channel': f'PJSIP/{self.number}{self.prefix}',
                 'Context': 'autocaller',
                 'Exten': 'call',
@@ -123,7 +125,7 @@ class AMImanager:
     async def handle_events(self, manager, message):
         """Обработчик всех входящих событий от Asterisk"""
 
-
+        print(f'MESSAGE: {message}')
         print(f"EVENT: {message.event} | ActionID: {message.get('ActionID')} | Linkedid: {getattr(message, 'Linkedid', None)} | Uniqueid: {getattr(message, 'Uniqueid', None)}")
         
         # Обработка события Registry от Asterisk
@@ -139,9 +141,23 @@ class AMImanager:
 
         # А) Идентификация канала: ActionID -> Linkedid
         msg_action_id = message.get('ActionID')
-        if message.event in ('Newchannel', 'Newstate') and msg_action_id == self.action_id:
+        if message.event in ('OriginateResponce') and msg_action_id == self.action_id:
+            if getattr(message, 'Responce', None)=='Succes':
+                self.linkedid = getattr(message, 'Uniqueid', None) or getattr(message, 'Linkedid', None)
+                print(f"Связь: {self.action_id} <-> {self.linkedid}")
+            elif getattr(message, 'Responce', None)=='Failure':
+                print('OrogonateResponce = Failure')
+                self.call_object.call_error = True
+                self.stop_event.set()
+            else:
+                print('OriginateResponce unnkown responce')
+                self.call_object.call_error = True
+                self.stop_event.set()
+
+        if not self.linkedid and message.event == 'DialBegin'and message.DialString == f'{self.number}{self.prefix}':
             self.linkedid = getattr(message, 'Uniqueid', None) or getattr(message, 'Linkedid', None)
             print(f"Связь: {self.action_id} <-> {self.linkedid}")
+
 
         # Б) Фильтрация событий по Linkedid
         msg_linkedid = getattr(message, 'Linkedid', None)
