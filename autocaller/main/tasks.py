@@ -89,6 +89,7 @@ class AMImanager:
             # Asterisk позвонит на Channel и при ответе отправит его в Context 'autocaller'
 
             print(f'Отправляем Originate action_id = {self.action_id}')
+
             call = await self.manager.send_originate({
                 'Action': 'Originate',
                 'Timeout': '30000',
@@ -134,14 +135,14 @@ class AMImanager:
             self.call_object.ats_no_answer = True
             self.stop_event.set()
 
-        # Финализация при ошибке Originate (если абонент сразу недоступен)
-        if message.event.lower() == 'originateresponse' and message.Response == 'Failure':
-            self.call_object.call_error = True
-            self.stop_event.set()
+        # # Финализация при ошибке Originate (если абонент сразу недоступен)
+        # if message.event.lower() == 'originateresponse' and message.Response == 'Failure':
+        #     self.call_object.call_error = True
+        #     self.stop_event.set()
 
         # А) Идентификация канала: ActionID -> Linkedid
         msg_action_id = message.get('ActionID')
-        if message.event=='OriginateResponce' and msg_action_id == self.action_id:
+        if message.event.lower() == 'originateresponse' and msg_action_id == self.action_id:
             if getattr(message, 'Responce', None)=='Succes':
                 self.linkedid = getattr(message, 'Uniqueid', None) or getattr(message, 'Linkedid', None)
                 print(f"Связь: {self.action_id} <-> {self.linkedid}")
