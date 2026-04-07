@@ -76,7 +76,8 @@ class AMImanager:
         )
 
         # 2. Формируем уникальный ActionID, чтобы найти этот звонок в потоке событий
-        self.action_id = f"django_call_{self.call_object.id}"
+        self.action_id = f'django_call_{self.call_object.id}'
+        print(f'Полученный ActionID {self.action_id}')
         
         
         try:
@@ -89,7 +90,7 @@ class AMImanager:
             call = await self.manager.send_originate({
                 'Action': 'Originate',
                 'Timeout': '30000',
-                'ActionID': self.action_id,
+                'ActionID': f'{self.action_id}',
                 'Channel': f'PJSIP/{self.number}{self.prefix}',
                 'Context': 'autocaller',
                 'Exten': 'call',
@@ -150,6 +151,7 @@ class AMImanager:
             # Обработка ввода цифр абонентом (через VarSet в Dialplan)
             if event_name == 'varset' and message.Variable == 'user_input':
                 self.call_object.user_input = message.Value
+                print(f'Пользователь ввел { message.Value}')
                 if message.Value == str(self.code): 
                     self.call_object.confirmed = True
                 else:
@@ -159,6 +161,7 @@ class AMImanager:
             # Ввод пароля
             elif event_name == 'varset' and message.Variable == 'pass_input':
                 self.call_object.user_pass_input = message.Value
+                print(f'Пользователь ввел пароль { message.Value}')
                 if message.Value == str(self.password): 
                     self.call_object.pass_confirmed = True
                 else:
@@ -168,13 +171,15 @@ class AMImanager:
             # Факт поднятия трубки
             elif event_name == 'dialend' and getattr(message, 'DialStatus', None) == 'ANSWER':
                 self.call_object.call_answered = True
+                print('Пользователь взял трубку')
                 await sync_to_async(self.call_object.save)(update_fields=['call_answered'])
 
             # Завершение (Hangup)
             elif event_name == 'hangup':
                 self.call_object.end_time = datetime.datetime.now()
                 self.call_object.end_code = message.cause
-                
+                print('Пользователь положил трубку')
+
                 # Безопасное получение cause, даже если его нет в сообщении
                 cause = str(getattr(message, 'cause', '0')) 
                 self.call_object.end_code = int(cause) if cause.isdigit() else 0
