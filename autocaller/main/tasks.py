@@ -77,7 +77,7 @@ class AMImanager:
 
         # 2. Формируем уникальный ActionID, чтобы найти этот звонок в потоке событий
         self.action_id = f'django_call_{self.call_object.id}'
-        print(f'Полученный ActionID {self.action_id}')
+        # print(f'Полученный ActionID {self.action_id}')
         
         
         try:
@@ -125,8 +125,6 @@ class AMImanager:
 
     async def handle_events(self, manager, message):
         """Обработчик всех входящих событий от Asterisk"""
-
-        print(f'MESSAGE: {message}')
     
         
         # Обработка события Registry от Asterisk
@@ -145,7 +143,7 @@ class AMImanager:
         if message.event.lower() == 'originateresponse' and msg_action_id == self.action_id:
             if getattr(message, 'Responce', None)=='Succes':
                 self.linkedid = getattr(message, 'Uniqueid', None) or getattr(message, 'Linkedid', None)
-                print(f"Связь: {self.action_id} <-> {self.linkedid}")
+                # print(f"Связь: {self.action_id} <-> {self.linkedid}")
             elif getattr(message, 'Responce', None)=='Failure':
                 print('OrogonateResponce = Failure')
                 self.call_object.call_error = True
@@ -157,7 +155,7 @@ class AMImanager:
 
         if not self.linkedid and message.event == 'DialBegin'and message.DialString == f'{self.number}{self.prefix}':
             self.linkedid = getattr(message, 'DestUniqueid', None) or getattr(message, 'DestLinkedid', None)
-            print(f"Связь: {self.action_id} <-> {self.linkedid}")
+            # print(f"Связь: {self.action_id} <-> {self.linkedid}")
 
 
         # Б) Фильтрация событий по Linkedid
@@ -168,7 +166,7 @@ class AMImanager:
             # Обработка ввода цифр абонентом (через VarSet в Dialplan)
             if event_name == 'varset' and message.Variable == 'user_input':
                 self.call_object.user_input = message.Value
-                print(f'Пользователь ввел { message.Value}')
+                # print(f'Пользователь ввел { message.Value}')
                 if message.Value == str(self.code): 
                     self.call_object.confirmed = True
                 else:
@@ -178,7 +176,7 @@ class AMImanager:
             # Ввод пароля
             elif event_name == 'varset' and message.Variable == 'pass_input':
                 self.call_object.user_pass_input = message.Value
-                print(f'Пользователь ввел пароль { message.Value}')
+                # print(f'Пользователь ввел пароль { message.Value}')
                 if message.Value == str(self.password): 
                     self.call_object.pass_confirmed = True
                 else:
@@ -188,14 +186,14 @@ class AMImanager:
             # Факт поднятия трубки
             elif event_name == 'dialend' and getattr(message, 'DialStatus', None) == 'ANSWER':
                 self.call_object.call_answered = True
-                print('Пользователь взял трубку')
+                # print('Пользователь взял трубку')
                 await sync_to_async(self.call_object.save)(update_fields=['call_answered'])
 
             # Завершение (Hangup)
             elif event_name == 'hangup':
                 self.call_object.end_time = datetime.datetime.now()
                 self.call_object.end_code = message.cause
-                print('Пользователь положил трубку')
+                # print('Пользователь положил трубку')
 
                 # Безопасное получение cause, даже если его нет в сообщении
                 cause = str(getattr(message, 'cause', '0')) 
