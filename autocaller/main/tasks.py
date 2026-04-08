@@ -83,7 +83,7 @@ class AMImanager:
         try:
             # Подключаемся к Asterisk
             await self.manager.connect()
-            # await asyncio.sleep(1)
+            await asyncio.sleep(1)
 
             # 3. Отправка команды Originate (инициировать вызов)
             # Asterisk позвонит на Channel и при ответе отправит его в Context 'autocaller'
@@ -127,7 +127,7 @@ class AMImanager:
         """Обработчик всех входящих событий от Asterisk"""
 
         print(f'MESSAGE: {message}')
-        print(f"EVENT: {message.event} | ActionID: {message.get('ActionID')} | Linkedid: {getattr(message, 'Linkedid', None)} | Uniqueid: {getattr(message, 'Uniqueid', None)}")
+    
         
         # Обработка события Registry от Asterisk
         # Это происходит, когда транк (канал связи) не может авторизоваться
@@ -156,7 +156,7 @@ class AMImanager:
                 self.stop_event.set()
 
         if not self.linkedid and message.event == 'DialBegin'and message.DialString == f'{self.number}{self.prefix}':
-            self.linkedid = getattr(message, 'Uniqueid', None) or getattr(message, 'Linkedid', None)
+            self.linkedid = getattr(message, 'DestUniqueid', None) or getattr(message, 'DestLinkedid', None)
             print(f"Связь: {self.action_id} <-> {self.linkedid}")
 
 
