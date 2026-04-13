@@ -22,22 +22,22 @@
   <div id="card_{{list.id}}" class="card_child" data-bs-toggle="modal" data-bs-target="#EditList" 
   onclick="EditFunc(
     cardid='{{list.id}}',
-    name='{{list.list_name}}',
-    description='{{list.list_description}}',
+    name='{{list.list_name|escapejs}}',
+    description='{{list.list_description|escapejs}}',
     // audio_filename='{{list.sound.filename}}',
     //audio_src='{{list.sound.get_url}}',
-    abon_list='{% for abonent in list.abonents.all %}{{abonent.full_name}};{% endfor %}',
-    is_mobile='{{list.main_phone}}',
-    is_secondary='{{list.second_phone}}',
-    is_work='{{list.work_phone}}',
-    accept_code='{{list.accept_combination}}', 
-    password='{{list.password}}',
-    is_password='{{list.is_password}}'
+    abon_list='{% for abonent in list.abonents.all %}{{abonent.full_name|escapejs}};{% endfor %}',
+    is_mobile='{{list.main_phone|escapejs}}',
+    is_secondary='{{list.second_phone|escapejs}}',
+    is_work='{{list.work_phone|escapejs}}',
+    accept_code='{{list.accept_combination|escapejs}}', 
+    password='{{list.password|escapejs}}',
+    is_password='{{list.is_password|escapejs}}'
     )">
     <div class="card">
       <div class="card-body">
         <div class="card_logo" align="center">
-          <img src="static/main/free-icon-document.png"  height="50">
+        <img src="static/main/free-icon-document.png"  height="50">
         </div>
         <h5 class="card-title">{{list.list_name}}</h5>
         <p class="card-text">{{list.list_description}}</p>

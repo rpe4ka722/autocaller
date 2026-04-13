@@ -37,7 +37,7 @@
     <div id="card_{{list.id}}" class="card_child" data-bs-toggle="modal" data-bs-target="#PlayList" 
     onclick="PlayFunc(
         cardid='{{list.id}}',
-        list_name='{{list.list_name}}'
+        list_name='{{list.list_name|escapejs}}'
         )">
       <div class="card">
         <div class="card-body">

@@ -24,7 +24,6 @@ async function EditFunc(cardid, name, description, abon_list, is_mobile, is_seco
     password_block.style.display = (is_password === 'True') ? 'block' : 'none';
     title.innerHTML = 'Список оповещения ' + name;
     list_description.innerHTML = description;
-    console.log(accept_code);
     accept_code_modal.innerHTML = accept_code;
     password_modal.innerHTML = password;
     delete_form.action = 'delete_list/' + cardid;
