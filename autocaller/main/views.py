@@ -278,7 +278,7 @@ def edit_abonent(request, id):
 @login_required(login_url='account:login')
 def sounds(request):
     dep = request.user.department
-    files = SoundFile.objects.filter(department = dep)
+    files = SoundFile.objects.filter(department = dep).order_by('filename')
     time = datetime.now().timestamp
     context = {'files': files, 'time':time}
     response = render(request, 'main/templates/sounds.html', context)
@@ -649,7 +649,7 @@ def report_export(request, report_id):
     row_num += 2
 
     columns = ['Абонент', 'Тип номера', 'Номер телефона', 'Уведомлен','Введенный код', 'Количество неверных попыток','Ввод пароля','Введенный пароль', 
-               'Количество неверных попыток ввода пароля','Время начала вызова', 'Время завершения вызова', 'Ответ абонета', 'Код завершения']
+               'Количество неверных попыток ввода пароля','Время начала вызова', 'Время завершения вызова', 'Ответ абонента', 'Код завершения']
     for col_num in range(len(columns)):
         ws.cell(row_num, col_num + 1, columns[col_num])
         ws.cell(row_num, col_num + 1).font = font

@@ -155,12 +155,13 @@ class AMImanager:
 
         if not self.linkedid and message.event == 'DialBegin'and message.DialString == f'{self.number}{self.prefix}':
             self.linkedid = getattr(message, 'DestUniqueid', None) or getattr(message, 'DestLinkedid', None)
-            # print(f"Связь: {self.action_id} <-> {self.linkedid}")
+            print(f"Связь: {self.action_id} <-> {self.linkedid}")
 
 
         # Б) Фильтрация событий по Linkedid
         msg_linkedid = getattr(message, 'Linkedid', None)
-        if self.linkedid and msg_linkedid == self.linkedid:
+        msg_dest_linkedid = getattr(message, 'DestLinkedid', None)
+        if self.linkedid and msg_linkedid == self.linkedid or msg_dest_linkedid == self.linkedid:
             event_name = message.event.lower()
 
             # Обработка ввода цифр абонентом (через VarSet в Dialplan)
@@ -184,7 +185,7 @@ class AMImanager:
                 await sync_to_async(self.call_object.save)(update_fields=['user_pass_input', 'pass_confirmed', 'incorrect_pass_input_count'])
 
             # Факт поднятия трубки
-            elif event_name == 'dialend' and getattr(message, 'DialStatus', None) == 'ANSWER':
+            elif event_name == 'dialend' and message.DialStatus == 'ANSWER':
                 self.call_object.call_answered = True
                 # print('Пользователь взял трубку')
                 await sync_to_async(self.call_object.save)(update_fields=['call_answered'])
@@ -330,7 +331,7 @@ def list_call(call_list_id, report_id):
 
         # Основной цикл запуска звонков
         for abonent_id in abonent_ids:
-            time.sleep(1)
+            time.sleep(2)
             res = abonent_call.apply_async(args=[sound, code, report.id, abonent_id, call_list_id, password, is_password], queue='celery')
 
             # Сохраняем ID задачи в список, чтобы потом проверить результат
