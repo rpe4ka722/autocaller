@@ -250,44 +250,7 @@ function AddAbonentFunc() {
             }
         }
 
-        //создаем новый элемент с ФИО абонента
-        let div = document.createElement('div');
-        div.className = "added_abonents_div";
-        div.id = 'div_' + abonents_input.value.replaceAll(' ', '');
-        div.innerHTML = abonents_input.value; 
-
-        //добавляем блок ссылки удаления элемента
-        let div_buttton = document.createElement('div');
-        div_buttton.className = "trash_div_abonents";
-        
-        //добавляем ссылку удаления элемента
-        let del_button = document.createElement('a');
-        del_button.className = "trash-icon";
-        del_button.id = abonents_input.value.replaceAll(' ', '');
-        del_button.innerHTML = '<i class="bi bi-x-lg"></i>';
-
-        //функция кнопки удаления
-        del_button.onclick = (event) => {
-            let id = del_button.id
-            let added_abonent_item = document.getElementById('div_' + id);
-            let added_abonent_item_text = added_abonent_item.textContent
-            let new_option = document.createElement('option');
-            new_option.value = added_abonent_item_text;
-            abonents_datalist.append(new_option);
-            added_abonent_item.remove();
-            let abonents_index = abonent_list.indexOf(added_abonent_item_text);
-            abonent_list.splice(abonents_index, 1);
-            console.log(abonent_list);
-        }
-
-        //размещение элементов
-        form.append(div);
-        div.append(div_buttton);
-        div_buttton.append(del_button);
-        //очищение поля ввода
-        abonents_input.value = '';
-        //вывод итогового списка
-        console.log(abonent_list);
+        renderAbonent(abonents_input.value, form);
     }
 }
 
@@ -426,8 +389,7 @@ function renderAbonent(name, target_form) {
         div_buttton.append(del_button);
         //очищение поля ввода
         abonents_input.value = '';
-        //вывод итогового списка
-        console.log(abonent_list);
+
 }
 
 
