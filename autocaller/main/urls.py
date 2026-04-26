@@ -17,6 +17,7 @@ urlpatterns = [
     path('delete_sound/<int:id>', views.delete_sound, name='delete_sound'),
     path('lists', views.lists, name='lists'),
     path('create_list', views.create_list, name='create_list'),
+    path('edit_list/<int:list_id>', views.edit_list, name='edit_list'),
     path('delete_list/<int:list_id>', views.delete_list, name='delete_list'),
     path('report', views.report, name='report'),
     path('start_list/<int:list_id>/<int:sound_id>', views.start_list, name='start_list'),
@@ -31,4 +32,5 @@ urlpatterns = [
     path('exclude_abonent/<int:list_id>/<str:abonent_name>/', views.exclude_abonent, name='exclude_abonent'),
     path('include_abonent/<int:list_id>/<str:abonent_name>/', views.include_abonent, name='include_abonent'),
     path('get_list_details/<int:list_id>/', views.get_list_details, name='get_list_details'),
+    path('get_list_info/<int:list_id>/', views.get_list_info, name='get_list_info'),
 ]

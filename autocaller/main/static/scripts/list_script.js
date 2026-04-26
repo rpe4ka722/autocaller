@@ -18,7 +18,7 @@ async function EditFunc(cardid, name, description, abon_list, is_mobile, is_seco
     abonents_list_ul.innerHTML = '';
 
        
-    exclude_abon_set = await getListInfo(cardid);
+    exclude_abon_set = await getListDetails(cardid);
 
 
     password_block.style.display = (is_password === 'True') ? 'block' : 'none';
@@ -140,23 +140,94 @@ async function EditFunc(cardid, name, description, abon_list, is_mobile, is_seco
     }, { once: true })
 }
 
+let abonent_list = [];
+const abonents_input = document.getElementById('abonents_input');
+const edit_abonents_input = document.getElementById('edit_abonents_input');
+const abonents_datalist = document.getElementById('abonents_add');
+const form = document.getElementById('create_list_form');
+const edit_form = document.getElementById('edit_list_form');
+const originalAbonents = Array.from(document.querySelectorAll('#abonents_add option')).map(opt => opt.value);
+let currentEditingId = null;
+
 function CreateFunc() {
     let card = document.getElementById('create_card');
     let myModal = document.getElementById('CreateList');
-    let form = document.getElementById('create_list_form');
     card.style = 'box-shadow: 2px 2px 4px rgba(10, 10, 10, 0.5); transform: translate(-5px, -5px);';
     myModal.addEventListener('hide.bs.modal', () => {
         card.style = '';
         form.reset();
         abonent_list = [];   
         document.querySelectorAll('.added_abonents_div').forEach(div => div.remove());
+
+        abonents_datalist.innerHTML = '';
+        originalAbonents.forEach(name => {
+            let option = document.createElement('option');
+            option.value = name;
+            abonents_datalist.appendChild(option);
+        });
     }, { once: true })
 }
 
-let abonent_list = [];
-const abonents_input = document.getElementById('abonents_input');
-const abonents_datalist = document.getElementById('abonents_add');
-const form = document.getElementById('create_list_form');
+async function EditListFunc(cardid) {
+
+    currentEditingId = cardid;
+    console.log(cardid);
+    let list_id = 'card_' + cardid;
+
+    let card = document.getElementById(list_id);
+    let edit_list_Modal = document.getElementById('modal_edit_list');
+    let call_paragraph_div = document.getElementById('call_paragaph');
+    let input_area = document.getElementById('edit_password_area');
+
+    
+
+    const listInfo = await getListInfo(cardid);
+
+    console.log(listInfo);
+
+    document.getElementById('edit_filename_input').value = listInfo.list_name;
+    document.getElementById('edit_description_input').value = listInfo.list_description;
+    document.getElementById('edit_accept_code_input').value = listInfo.accept_combination;
+    document.getElementById('edit_tries_number').value = listInfo.tries_number;
+
+    document.getElementById('edit_flexSwitch1').checked = listInfo.main_phone;
+    document.getElementById('edit_flexSwitch2').checked = listInfo.second_phone;
+    document.getElementById('edit_flexSwitch3').checked = listInfo.work_phone;
+
+    abonent_list = listInfo.abon_list;
+
+    
+    document.getElementById('edit_is_passwd_switch').checked = !listInfo.is_password;
+    if (listInfo.is_password) {
+        input_area.style.display = 'block';
+        document.getElementById('edit_password_input').value = listInfo.password;
+    } else {
+        input_area.style.display = 'none';
+    }
+
+    for (let name of abonent_list) {
+        renderAbonent(name, edit_form);
+        let delete_option = abonents_datalist.querySelector(`option[value="${name}"]`);
+        delete_option.remove();
+    }
+
+
+    edit_list_Modal.addEventListener('hide.bs.modal', () => {
+        card.style = '';
+        call_paragraph_div.innerHTML = '';
+        edit_form.reset();
+        edit_form.querySelectorAll('.added_abonents_div').forEach(el => el.remove());
+        abonents_datalist.innerHTML = '';
+        originalAbonents.forEach(name => {
+            let option = document.createElement('option');
+            option.value = name;
+            abonents_datalist.appendChild(option);
+        });
+        abonent_list = [];
+    }, { once: true })
+    
+}
+
 
 function AddAbonentFunc() {
     let abonent_option = document.querySelector("#abonents_add option[value='" + abonents_input.value + "']");
@@ -220,10 +291,10 @@ function AddAbonentFunc() {
     }
 }
 
-function PasswordFunc() {
-    let checkbox = document.getElementById('is_passwd_switch');
-    let input_area = document.querySelector('.password_input_class');
-    let password_input = document.getElementById('password_input');
+function PasswordFunc(id='') {
+    let checkbox = document.getElementById(id + 'is_passwd_switch');
+    let input_area = document.getElementById(id + 'password_area');
+    let password_input = document.getElementById(id + 'password_input');
 
     if (checkbox.checked) {
         input_area.style.display = 'none';
@@ -231,8 +302,7 @@ function PasswordFunc() {
         password_input.value = '';
     } else {
         input_area.style.display = 'block';
-        password_input.required = true;
-        
+        password_input.required = true;    
     }
 }
 
@@ -278,7 +348,7 @@ function getCookie(name) {
     return cookieValue;
 }
 
-async function getListInfo(cardid) {
+async function getListDetails(cardid) {
     let exclude_abon_set = []; // Объявляем заранее
     try {
         const response = await fetch(`/get_list_details/${cardid}/`);
@@ -298,3 +368,117 @@ async function getListInfo(cardid) {
     }
     return exclude_abon_set; // Теперь переменная доступна
 }
+
+
+async function getListInfo(cardid) {
+    let resultData = null;
+    try {
+        const response = await fetch(`/get_list_info/${cardid}/`);
+        if (!response.ok) throw new Error('Ошибка сети');
+        
+        resultData = await response.json();
+        
+    } catch (error) {
+        console.error('Ошибка при получении данных:', error);
+        const abonents_list_ul = document.getElementById('abonents_list_id');
+        if (abonents_list_ul) {
+            abonents_list_ul.innerHTML = '<li class="text-danger">Ошибка загрузки статусов</li>';
+        }
+    }
+    return resultData;
+}
+
+
+function renderAbonent(name, target_form) {
+            //создаем новый элемент с ФИО абонента
+        let div = document.createElement('div');
+        div.className = "added_abonents_div";
+        div.id = 'div_' + name.replaceAll(' ', '');
+        div.textContent = name; 
+
+        //добавляем блок ссылки удаления элемента
+        let div_buttton = document.createElement('div');
+        div_buttton.className = "trash_div_abonents";
+        
+        //добавляем ссылку удаления элемента
+        let del_button = document.createElement('a');
+        del_button.className = "trash-icon";
+        del_button.id = name.replaceAll(' ', '');
+        del_button.innerHTML = '<i class="bi bi-x-lg"></i>';
+
+        //функция кнопки удаления
+        del_button.onclick = (event) => {
+            let id = del_button.id
+            let added_abonent_item = document.getElementById('div_' + id);
+            let added_abonent_item_text = added_abonent_item.textContent
+            let new_option = document.createElement('option');
+            new_option.value = added_abonent_item_text;
+            abonents_datalist.append(new_option);
+
+            added_abonent_item.remove();
+            let abonents_index = abonent_list.indexOf(added_abonent_item_text);
+            abonent_list.splice(abonents_index, 1);
+        }
+
+        //размещение элементов
+        target_form.append(div);
+        div.append(div_buttton);
+        div_buttton.append(del_button);
+        //очищение поля ввода
+        abonents_input.value = '';
+        //вывод итогового списка
+        console.log(abonent_list);
+}
+
+
+function EditAbonentFunc() {
+    let abonent_option = document.querySelector("#abonents_add option[value='" + edit_abonents_input.value + "']");
+    let name = edit_abonents_input.value;
+    console.log(name)
+
+    if (edit_abonents_input.value == "") {
+        null;   
+    }
+    else if (abonent_option == null) {
+        alert('Выберите абонента из списка')
+    }
+    else {
+        abonent_list.push(name);
+        
+        renderAbonent(name, edit_form);
+        let delete_option = abonents_datalist.querySelector(`option[value="${name}"]`);
+        delete_option.remove();
+        edit_abonents_input.value = '';
+    }
+}
+
+
+edit_form.addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    if (abonent_list.length === 0) {
+        alert('Вы не добавили абонентов в список');
+        return;
+    }
+
+    // Собираем данные формы
+    let formData = new FormData(edit_form);
+    formData.append('abonents_list', abonent_list.join(',')); // Передаем строку через запятую
+
+    try {
+        let response = await fetch(`/edit_list/${currentEditingId}`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (response.ok) {
+            window.location.assign('/lists'); // parent чаще всего не нужен, assign надежнее
+        } else {
+            const errorText = await response.text();
+            alert('Ошибка: ' + errorText);
+        }
+    } catch (error) {
+        console.error('Ошибка отправки:', error);
+        alert('Произошла ошибка при соединении с сервером');
+    }
+});

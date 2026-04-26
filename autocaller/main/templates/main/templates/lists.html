@@ -47,9 +47,6 @@
         {% endif %}
         <p class="card-text">Количество попыток: {{list.tries_number}}</p>
         <p class="card-text">Количество абонентов: {{list.abonents_count}}</p>
-        <!--
-        <p class="card-text">Аудиофайл: {{list.sound.filename}}</p>
-        -->
           {% if list.main_phone %}
           <p class="card-text"> 
             <i class="bi bi-phone"></i> Мобильный
@@ -66,6 +63,13 @@
           </p>
           {% endif %}
       </div>
+      <!-- Кнопка редактирования списка -->
+      <div class="list_modal_footer">
+        <a class="abonent-edit" data-bs-toggle="modal" data-bs-target="#modal_edit_list" onclick="EditListFunc(id='{{ list.id }}')">
+        <i class="bi bi-gear-fill" id="gear-icon-list"></i>
+        </a>
+      </div>
+      <!-- =============================== -->
     </div>
   </div>
   {% endfor %}
@@ -116,7 +120,7 @@
               <label class="form-check-label" for="is_passwd_switch">Использовать без пароля</label>
             </div>
           <!-- пароль -->
-            <div class="password_input_class">
+            <div class="password_input_class" id="password_area">
             <label for="password_input" class="form-label">Введите пароль для прослушивания</label>
             <input class="form-control" id="password_input" name="password_input" maxlength="1" pattern="[0-9]{1}" placeholder="X">
             </div>
@@ -146,20 +150,6 @@
               <label class="form-check-label" for="flexSwitch3">Звонить на рабочий телефон</label>
             </div>
           </div>
-          <!-- звуковой файл -->
-          <!-- 
-          <div class="mb-3">
-            <label for="sound_input" class="form-label">Выберите звуковой файл сообщения</label>
-            <div class="input mb-3">
-              <input type="text" class="form-control" id="sound_input" list="sound_add" name="sound_name" autocomplete="off" required>
-              <datalist id="sound_add">
-                {% for sound in sound_list %}
-                <option value="{{ sound }}"></option>
-                {% endfor %}
-              </datalist>
-            </div>
-          </div> 
-          -->
           <!-- абоненты -->
           <div class="mb-3">
             <label for="abonents_input" class="form-label">Выберите абонентов для оповещения</label>
@@ -208,7 +198,7 @@
   </div>
 </div>
 <!-- =============================== -->
-<!-- Модальное окно редактирование списка-->
+<!-- Модальное окно просмотра списка-->
 <div class="modal fade" id="EditList" tabindex="-1" aria-labelledby="exampleModalLabel1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -231,14 +221,6 @@
             <label for="password_modal" class="form-label"> Пароль для прослушивания сообщения:</label>
             <p id="password_modal"></p>
           </div>
-        <!-- аудио -->
-        <!--
-        <div class="mb-3">
-          <label for="audio_filename" class="form-label">Аудиофайл:</label>
-          <p id="audio_filename"></p>
-          <audio id="audiofile_id" controls preload="metadata"></audio>
-        </div>
-        -->
         <!-- список направлений для вызова -->
         <div class="edit_modal_element">
           <label class="form-label">Вызов:</label>
@@ -259,6 +241,97 @@
           </button>
         </div>
         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Модальное окно редактирование списка-->
+<div class="modal fade" id="modal_edit_list" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- заголовок -->
+      <div class="modal-header">
+        <h5 class="modal-title fs-5" id="exampleModalLabel">Редактирование списка оповещения</h5>
+      </div>
+      <!-- тело -->
+      <div class="modal-body">
+        <form id="edit_list_form" method="post">
+          {% csrf_token %}
+          <!-- название -->
+          <div class="mb-3">
+            <label for="filename_input" class="form-label">Название списка</label>
+            <input type="text" class="form-control" id="edit_filename_input" maxlength="50" required name="listname">
+          </div>
+          <!-- описание -->
+          <div class="mb-3">
+            <label for="description_input" class="form-label">Краткое описание списка</label>
+            <textarea class="form-control" id="edit_description_input" rows="2" required name="list_text" maxlength="100"></textarea>
+          </div>
+          <!-- кодовая комбинация -->
+          <div class="mb-3">
+            <label for="accept_code_input" class="form-label">Цифра для подтверждения</label>
+            <input class="form-control" id="edit_accept_code_input" name="accept_code" maxlength="1" pattern="[0-9]{1}" placeholder="X" required >
+          </div>
+          <!-- установка пароля -->
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="edit_is_passwd_switch" checked name="is_not_password" onclick="PasswordFunc('edit_')">
+              <label class="form-check-label" for="is_passwd_switch">Использовать без пароля</label>
+            </div>
+          <!-- пароль -->
+            <div class="password_input_class" id="edit_password_area">
+            <label for="password_input" class="form-label">Пароль для прослушивания</label>
+            <input class="form-control" id="edit_password_input" name="password_input" maxlength="1" pattern="[0-9]{1}" placeholder="X">
+            </div>
+          </div>
+          <!-- количество попыток -->
+          <div class="mb-3">
+            <label for="accept_code_input" class="form-label">Количество попыток</label>
+            <input class="form-control" id="edit_tries_number" name="tries_number" maxlength="1" pattern="[1-3]{1}" placeholder="1">
+            <div id="edit_accept_code_Help" class="form-text">Попыток дозвона может быть не более 3-х</div>
+          </div>
+          <!-- выбор точек обзвона -->
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="edit_flexSwitch1" checked name="phone" value="mobile">
+              <label class="form-check-label" for="flexSwitch1">Звонить на мобильный телефон</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="edit_flexSwitch2" name="phone" value="secondary">
+              <label class="form-check-label" for="flexSwitch2">Звонить на дополнительный телефон</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="edit_flexSwitch3" name="phone" value="work">
+              <label class="form-check-label" for="flexSwitch3">Звонить на рабочий телефон</label>
+            </div>
+          </div>
+          <!-- абоненты -->
+          <div class="mb-3">
+            <label for="abonents_input" class="form-label">Абоненты для оповещения</label>
+            <div class="input-group mb-3">
+              <input type="text" class="form-control" list="abonents_add" id="edit_abonents_input" autocomplete="off">
+              <span class="input-group-text" id="basic-addon1" onclick="EditAbonentFunc()">
+                <div class="abonent_add_icon">
+                  <i class="bi bi-plus"></i>
+                </div>
+              </span>
+              <datalist id="edit_abonents_add">
+                {% for abonent in abonents %}
+                <option value="{{ abonent.full_name }}"></option>
+                {% endfor %}
+              </datalist>
+            </div>
+          </div>
+        </form>
+      </div>
+      <!-- подвал -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
+        <button type="submit" class="btn btn-outline-secondary btn-sm" form="edit_list_form">Сохранить</button>
       </div>
     </div>
   </div>

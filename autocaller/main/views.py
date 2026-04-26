@@ -473,11 +473,7 @@ def create_list(request):
         if abonents_list == '':
             return HttpResponse('Список абонентов не должен быть пустым', status=500)
         else:
-            # try:
-            #     sound = SoundFile.objects.get(filename=request.POST['sound_name'], department=dep)
-            # except SoundFile.DoesNotExist:
-            #     return HttpResponse('Неизвестная ошибка', status=500)
-            list = CallList.objects.create(
+            new_list = CallList.objects.create(
                 list_name=listname, 
                 list_description=list_text,
                 last_edit_user=current_user,
@@ -490,24 +486,72 @@ def create_list(request):
                 second_phone='secondary' in phones,
                 work_phone='work' in phones
                 )
-            # if 'mobile' in phones:
-            #     list.main_phone = True
-            # else:
-            #     list.main_phone = False
-            # if 'secondary' in phones:
-            #     list.second_phone = True
-            # if 'work' in phones:
-            #     list.work_phone = True
-            list.save()
+
+            new_list.save()
         all_abonents = Abonent.objects.filter(department = dep)
         for abonent in all_abonents:
             full_name = abonent.full_name()
             if full_name in abonents_list:
                 try:
-                    list.abonents.add(abonent)
+                    new_list.abonents.add(abonent)
                     # list.save()
                 except:
                     return HttpResponse('Невозможно добавить абонента в список. Неизвестная ошибка.', status=500)
+
+        return HttpResponse(status=200)
+
+
+@login_required(login_url='account:login')
+def edit_list(request, list_id):
+    dep = request.user.department
+    current_user = request.user
+    current_list = get_object_or_404(CallList, pk=list_id)
+
+    if request.method == 'POST':
+        listname = request.POST.get('listname')
+        list_text = request.POST.get('list_text')
+        abonents_list = request.POST.get('abonents_list').split(',')
+        phones = request.POST.getlist('phone')
+        is_password_enabled = request.POST.get('is_not_password') != 'on'
+
+        # Валидация числовых полей
+        try:
+            tries_number = int(request.POST['tries_number'])
+        except:
+            tries_number = 1
+        try:
+            accept_code = int(request.POST.get('accept_code'))
+            if is_password_enabled:
+                password = int(request.POST.get('password_input'))
+            else:
+                password = None
+        except (ValueError, TypeError):
+            return HttpResponse('Ошибка в числовых данных (код, пароль или кол-во попыток)', status=500)
+
+        if abonents_list == '':
+            return HttpResponse('Список абонентов не должен быть пустым', status=500)
+        else:
+            current_list.list_name = listname
+            current_list.list_description = list_text
+            current_list.last_edit_user = current_user
+            current_list.accept_combination = accept_code
+            current_list.department = dep
+            current_list.tries_number = tries_number
+            current_list.password = password
+            current_list.is_password = is_password_enabled
+            current_list.main_phone = 'mobile' in phones
+            current_list.second_phone = 'secondary' in phones
+            current_list.work_phone = 'work' in phones
+            current_list.save()
+
+        selected_abonents = []
+        all_dep_abonents = Abonent.objects.filter(department = dep)
+
+        for abonent in all_dep_abonents:
+            if abonent.full_name() in abonents_list:
+                selected_abonents.append(abonent)
+
+        current_list.abonents.set(selected_abonents)
 
         return HttpResponse(status=200)
 
@@ -744,4 +788,23 @@ def get_list_details(request, list_id):
         
     return JsonResponse({
         'exclude_abon_list': excluded_names
+    })
+
+@login_required
+def get_list_info(request, list_id):
+    obj = get_object_or_404(CallList, id=list_id)
+    # Формируем строку ФИО через разделитель
+    abonents_names = [a.full_name() for a in obj.abonents.all()]
+        
+    return JsonResponse({
+        'list_name': obj.list_name,
+        'list_description': obj.list_description or "",
+        'abon_list': abonents_names,
+        'main_phone': obj.main_phone,
+        'second_phone': obj.second_phone,
+        'work_phone': obj.work_phone ,
+        'accept_combination':obj.accept_combination,
+        'tries_number': obj.tries_number,
+        'password': obj.password or "",
+        'is_password': obj.is_password
     })
