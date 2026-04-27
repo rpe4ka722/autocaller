@@ -28,8 +28,8 @@ class CustomUser(AbstractUser):
     ("ALL", 'Все филиалы')
     )
 
-    patronymic = models.CharField(verbose_name="Отчетство", max_length=30, blank=True, null=True)
-    department = models.CharField(max_length=4, choices=DEPARTMENT_CHOICES, blank=True, null=True)
+    patronymic = models.CharField(verbose_name="Отчетство", max_length=30, blank=True, null=True, default=None)
+    department = models.CharField(max_length=4, choices=DEPARTMENT_CHOICES, blank=True, null=True, default=ALL)
 
 
     def __str__(self):

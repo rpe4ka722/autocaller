@@ -291,12 +291,17 @@ echo_and_log "Создание администратора Django..."
 ADMIN_USER="root"
 ADMIN_EMAIL="admin@example.com"
 ADMIN_PASS="12345root"
+ADMIN_DEPARTMENT="ALL"
 
 docker-compose exec -T autocaller python manage.py shell -c "
 from django.contrib.auth import get_user_model;
 User = get_user_model();
 if not User.objects.filter(username='$ADMIN_USER').exists():
-    User.objects.create_superuser('$ADMIN_USER', '$ADMIN_EMAIL', '$ADMIN_PASS');
+    User.objects.create_superuser(
+        username='$ADMIN_USER', 
+        email='$ADMIN_EMAIL', 
+        password='$ADMIN_PASS',
+    )
     print('Суперпользователь успешно создан.')
 else:
     print('Суперпользователь уже существует.')
