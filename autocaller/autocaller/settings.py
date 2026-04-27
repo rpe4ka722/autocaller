@@ -90,11 +90,12 @@ WSGI_APPLICATION = 'autocaller.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'django-files/db.sqlite3',
-        'OPTIONS': {
-            'timeout': 20,  # ждать до 20 секунд
-        },
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env.str('POSTGRES_DB', default='autocaller_db'),
+        'USER': env.str('POSTGRES_USER', default='user'),
+        'PASSWORD': env.str('POSTGRES_PASSWORD', default='password'),
+        'HOST': env.str('POSTGRES_HOST', default='db'), # 'db' — это имя сервиса из docker-compose
+        'PORT': env.str('POSTGRES_PORT', default='5432'),
     }
 }
 
