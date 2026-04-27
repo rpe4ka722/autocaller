@@ -11,9 +11,9 @@ RUN apt-get update \
     && apt-get install RHVoice-Russian-elena -y\
     && apt-get install python3 -y\ 
     && apt-get install python3-module-django -y\ 
-    && python3-module-django-dbbackend-postgresql -y\
-    && libpq5 -y\
-    && python3-module-psycopg2 -y\
+    && apt-get install python3-module-django-dbbackend-postgresql -y\
+    && apt-get install libpq5 -y\
+    && apt-get install python3-module-psycopg2 -y\
     && apt-get install python3-module-jinja2 -y\
     && apt-get install python3-module-django-environ -y\
     && apt-get install python3-module-requests -y\
