@@ -9,17 +9,19 @@ services:
   #   volumes:
   #     - ./media/media/sounds:/opt/autocaller/media/sounds:ro
   #     - ./asterisk_conf:/etc/asterisk
-  
+
   db:
       image: postgres
       container_name: postgres-db
       restart: always
+      expose:
+        - 5432
       environment:
         POSTGRES_DB: autocaller_db
         POSTGRES_USER: autocaller
         POSTGRES_PASSWORD: autocaller
       volumes:
-        - ./postgres_data:/var/lib/postgresql/data
+        - ./postgres_data:/var/lib/postgresql
 
 
   redis:
@@ -46,22 +48,39 @@ services:
       - ./media/media:/opt/autocaller/media
 
   autocaller:
-    image: autocaller
-    container_name: django-app
-    depends_on:
-      - redis
-    restart: always
-    expose:
-        - 6379
-        - 8000
-    volumes:
-      - ./django-files:/opt/autocaller/django-files
-      - ./media/media:/opt/autocaller/media
-      - static_volume:/opt/autocaller/static
-    command: >
-      bash -c "gunicorn autocaller.wsgi:application --bind 0.0.0.0:8000 &
-              celery -A autocaller worker -Q hipri -l INFO --concurrency=5 &
-              celery -A autocaller worker -Q celery -l INFO --concurrency=10"
+      image: autocaller
+      container_name: django-app
+      depends_on:
+        - db
+        - redis
+      restart: always
+      volumes: &app_volumes
+        - ./django-files:/opt/autocaller/django-files
+        - ./media/media:/opt/autocaller/media
+        - static_volume:/opt/autocaller/static
+      command: gunicorn autocaller.wsgi:application --bind 0.0.0.0:8000
+
+  # Воркер для управления (HIPRI)
+  celery-hipri:
+      image: autocaller
+      container_name: celery-hipri
+      depends_on:
+        - db
+        - redis
+      restart: always
+      volumes: *app_volumes
+      command: celery -A autocaller worker -Q hipri -l INFO --concurrency=5
+
+  # Воркер для звонков (CELERY)
+  celery-common:
+      image: autocaller
+      container_name: celery-common
+      depends_on:
+        - db
+        - redis
+      restart: always
+      volumes: *app_volumes
+      command: celery -A autocaller worker -Q celery -l INFO --concurrency=10
 
 volumes:
  static_volume:
