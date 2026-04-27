@@ -11,7 +11,9 @@ RUN apt-get update \
     && apt-get install RHVoice-Russian-elena -y\
     && apt-get install python3 -y\ 
     && apt-get install python3-module-django -y\ 
-    && apt-get install python3-module-django-dbbackend-sqlite3 -y\
+    && python3-module-django-dbbackend-postgresql -y\
+    && libpq5 -y\
+    && python3-module-psycopg2 -y\
     && apt-get install python3-module-jinja2 -y\
     && apt-get install python3-module-django-environ -y\
     && apt-get install python3-module-requests -y\
@@ -20,5 +22,6 @@ RUN apt-get update \
     && apt-get install python3-module-gunicorn -y\
     && apt-get install sox -y\
     # && apt-get install RHVoice -y\
-    && apt-get install python3-module-redis-py -y
+    && apt-get install python3-module-redis-py -y\
+    && apt-get clean
     

@@ -6,6 +6,7 @@ from main.models import Call, CallList, Report, CustomUser, Abonent
 from asgiref.sync import sync_to_async
 import time, datetime, configparser
 from django.db import transaction
+from django.db.models import F
 
 
 class AMImanager:
@@ -349,22 +350,23 @@ def list_call(call_list_id, report_id):
                 if res_obj.ready():
                 # Здесь .result будет содержать именно то, что вернул abonent_call (True/False)
 
-                    if res_obj.successful():
+                    if res_obj.status == states.SUCCESS:
                         is_confirmed = res_obj.result
-                        results.remove(result_id)
-                    else: 
+                    else:
+                        # Сюда попадем, если статус FAILURE, REVOKED или RETRY
+                        print(f"Задача {result_id} завершилась неудачно со статусом: {res_obj.status}")
                         is_confirmed = False
         
                     if is_confirmed:
-                        report.checked_abonents += 1
+                        Report.objects.filter(id=report.id).update(checked_abonents=F('checked_abonents') + 1)
                     else:
-                        report.unchecked_abonents += 1
+                        Report.objects.filter(id=report.id).update(unchecked_abonents=F('unchecked_abonents') + 1)
 
-                    report.save()
                     report.call_queue = len(results)
 
             time.sleep(0.5)
 
+        report.refresh_from_db() # Подтягиваем все F() обновления
         report.in_progress = False
         report.end_time = datetime.datetime.now()
         call_list = report.list

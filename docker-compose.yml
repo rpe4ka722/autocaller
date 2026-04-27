@@ -1,14 +1,26 @@
 version: '3.3'
 
 services:
-  asterisk:
-    image: asterisk
-    container_name: asterisk
-    restart: always
-    network_mode: "host"
-    volumes:
-      - ./media/media/sounds:/opt/autocaller/media/sounds:ro
-      - ./asterisk_conf:/etc/asterisk
+  # asterisk:
+  #   image: asterisk
+  #   container_name: asterisk
+  #   restart: always
+  #   network_mode: "host"
+  #   volumes:
+  #     - ./media/media/sounds:/opt/autocaller/media/sounds:ro
+  #     - ./asterisk_conf:/etc/asterisk
+  
+  db:
+      image: postgres
+      container_name: postgres-db
+      restart: always
+      environment:
+        POSTGRES_DB: autocaller_db
+        POSTGRES_USER: autocaller
+        POSTGRES_PASSWORD: autocaller
+      volumes:
+        - ./postgres_data:/var/lib/postgresql/data
+
 
   redis:
     image: redis
