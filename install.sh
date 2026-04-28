@@ -278,7 +278,7 @@ fi
 echo_and_log "Ожидание запуска базы данных для выполнения миграций..."
 sleep 10 # Даем время Postgres инициализироваться
 
-if docker-compose exec -T autocaller python manage.py migrate; then
+if docker compose exec -T autocaller python3 manage.py migrate; then
     echo_and_log "УСПЕХ: Миграции базы данных выполнены"
 else
     echo_and_log "ОШИБКА: Не удалось выполнить миграции"
@@ -293,7 +293,7 @@ ADMIN_EMAIL="admin@example.com"
 ADMIN_PASS="12345root"
 ADMIN_DEPARTMENT="ALL"
 
-docker-compose exec -T autocaller python manage.py shell -c "
+docker compose exec -T autocaller python3 manage.py shell -c "
 from django.contrib.auth import get_user_model;
 User = get_user_model();
 if not User.objects.filter(username='$ADMIN_USER').exists():
