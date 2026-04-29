@@ -41,6 +41,8 @@ if [ "$CURRENT_BROWSER" != "$TARGET_BROWSER" ]; then
     fi
 fi
 
+
+
 # 2. Подготовка файлов
 cd "$TARGET_DIR" || { echo_and_log "ОШИБКА: Не удалось перейти в $TARGET_DIR"; exit 1; }
 
@@ -52,9 +54,34 @@ copy_with_log() {
     fi
 }
 
+# --- ЭКСПОРТ ДАННЫХ ИЗ СТАРОГО КОНТЕЙНЕРА ---
+if [ "$(docker ps -q -f name=autocaller)" ]; then
+    echo_and_log "Старый контейнер обнаружен. Делаем дамп базы SQLite..."
+    
+    # Делаем дамп внутри контейнера и сразу перенаправляем поток в файл на хосте
+    docker compose exec -T autocaller python manage.py dumpdata \
+        --exclude auth.permission \
+        --exclude contenttypes \
+        --exclude admin.logentry \
+        --exclude sessions \
+        > "$TARGET_DIR/data.json"
+
+    if [ $? -eq 0 ] && [ -s "$TARGET_DIR/data.json" ]; then
+        echo_and_log "УСПЕХ: Дамп базы сохранен в $TARGET_DIR/data.json"
+    else
+        echo_and_log "ОШИБКА: Не удалось создать дамп или файл пуст!"
+        # Здесь можно добавить exit 1, если без данных обновляться нельзя
+    fi
+else
+    echo_and_log "ПРЕДУПРЕЖДЕНИЕ: Работающий контейнер не найден, дамп пропущен."
+fi
+
 # copy_with_log "$SCRIPT_DIR/db.sqlite3" "$TARGET_DIR/django-files" "база данных"
 copy_with_log "$SCRIPT_DIR/django-files/.env" "$TARGET_DIR/django-files" "файл окружения"
 copy_with_log "$SCRIPT_DIR/docker-compose.yml" "$TARGET_DIR/" "docker-compose.yml"
+
+
+
 
 # 3. Работа с Docker образами
 if [ -f "$SCRIPT_DIR/autocaller.tar" ]; then
@@ -99,19 +126,38 @@ if [ -f "docker-compose.yml" ]; then
     $DOCKER_CMD up -d
     if [ $? -eq 0 ]; then
         echo_and_log "УСПЕХ: Контейнеры запущены"
-        # echo_and_log "Обновление статики (collectstatic)..."
-        # sleep 5 # Даем Django время проснуться
-        # if docker exec django-app python3 manage.py collectstatic --noinput --clear; then
-        #     echo_and_log "УСПЕХ: Статика обновлена"
-        # else
-        #     echo_and_log "ОШИБКА: Не удалось обновить статику"
-        # fi
     else
         echo_and_log "ОШИБКА: Не удалось запустить Docker"
     fi
 else
     echo_and_log "ОШИБКА: docker-compose.yml не найден"
 fi
+
+# --- ИМПОРТ В НОВЫЙ КОНТЕЙНЕР (POSTGRES) ---
+echo_and_log "Ожидание инициализации базы данных (10 сек)..."
+sleep 10
+
+# 1. Применяем миграции
+echo_and_log "Применение миграций в Postgres..."
+$DOCKER_CMD exec -T autocaller python manage.py migrate --noinput
+
+# 2. Очистка конфликтующих данных
+# Удаляем записи, которые могли создаться автоматически (например, при migrate),
+# чтобы они не конфликтовали с данными из дампа.
+echo_and_log "Подготовка базы к импорту..."
+$DOCKER_CMD exec -T autocaller python manage.py shell -c "from django.contrib.auth.models import User; User.objects.all().delete()"
+
+# 3. Загружаем данные (используем поток через дефис '-')
+echo_and_log "Загрузка данных из JSON..."
+if [ -f "$TARGET_DIR/data.json" ]; then
+    cat "$TARGET_DIR/data.json" | $DOCKER_CMD exec -T autocaller python manage.py loaddata --format=json -
+else
+    echo_and_log "ОШИБКА: Файл $TARGET_DIR/data.json не найден для импорта!"
+fi
+
+# 4. Сброс последовательностей ID (исправлено для автоматического определения приложений)
+echo_and_log "Сброс последовательностей ID..."
+$DOCKER_CMD exec -T autocaller /bin/bash -c "python manage.py sqlsequencereset auth autocaller | python manage.py dbshell"
 
 echo_and_log "========================================="
 echo_and_log "Обновление завершено! Лог: $LOG_FILE"

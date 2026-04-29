@@ -49,7 +49,7 @@ services:
 
   autocaller:
       image: autocaller
-      container_name: django-app
+      container_name: autocaller
       depends_on:
         - db
         - redis
