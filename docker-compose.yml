@@ -56,7 +56,7 @@ services:
       restart: always
       volumes: &app_volumes
         - ./django-files:/opt/autocaller/django-files
-        - ./media/media:/opt/autocaller/media
+        - ./media:/opt/autocaller/media
         - static_volume:/opt/autocaller/static
       command: gunicorn autocaller.wsgi:application --bind 0.0.0.0:8000
 
