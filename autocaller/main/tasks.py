@@ -1,4 +1,5 @@
 from celery import shared_task
+from celery import states
 from celery.result import AsyncResult
 import asyncio
 from main.panoramisk import CallManager
