@@ -307,6 +307,9 @@ else:
     print('Суперпользователь уже существует.')
 " | tee -a "$LOG_FILE"
 
+echo_and_log "Сбор статики Django..."
+docker compose exec -T autocaller python3 manage.py collectstatic
+
 # Изменение прав
 echo_and_log "Изменение прав для папки autocaller..."
 chmod -R 777 /opt/autocaller
