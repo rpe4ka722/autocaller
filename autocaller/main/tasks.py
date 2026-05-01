@@ -347,7 +347,7 @@ def list_call(call_list_id, report_id):
         report.save()
 
         # Шаг 3: Мониторинг выполнения (Ожидание результатов)
-        limit = config.getint('settings', 'list_call_time_limit', fallback=900)
+        limit = config.getint('asterisk', 'list_call_time_limit', fallback=900)
         time_limit_counter = 0
 
         while results and time_limit_counter < limit:

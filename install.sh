@@ -278,7 +278,7 @@ fi
 echo_and_log "Ожидание запуска базы данных для выполнения миграций..."
 sleep 10 # Даем время Postgres инициализироваться
 
-if docker compose exec -T autocaller python3 manage.py migrate; then
+if docker compose exec -T autocaller python3 manage.py migrate --no-input; then
     echo_and_log "УСПЕХ: Миграции базы данных выполнены"
 else
     echo_and_log "ОШИБКА: Не удалось выполнить миграции"
@@ -308,7 +308,7 @@ else:
 " | tee -a "$LOG_FILE"
 
 echo_and_log "Сбор статики Django..."
-docker compose exec -T autocaller python3 manage.py collectstatic
+docker compose exec -T autocaller python3 manage.py collectstatic --no-input
 
 # Изменение прав
 echo_and_log "Изменение прав для папки autocaller..."
