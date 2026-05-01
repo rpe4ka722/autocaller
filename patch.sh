@@ -28,7 +28,7 @@ echo_and_log "========================================="
 echo_and_log "Начало обновления Autocaller"
 echo_and_log "========================================="
 
-# 1. Настройка браузера (Firefox)
+# Настройка браузера (Firefox)
 TARGET_BROWSER="firefox.desktop"
 CURRENT_BROWSER=$(xdg-settings get default-web-browser 2>/dev/null)
 
@@ -43,9 +43,10 @@ fi
 
 
 
-# 2. Подготовка файлов
+# Переход в целевую директорию
 cd "$TARGET_DIR" || { echo_and_log "ОШИБКА: Не удалось перейти в $TARGET_DIR"; exit 1; }
 
+# Функция копирования с логгированием
 copy_with_log() {
     if [ -e "$1" ]; then
         cp -r "$1" "$2" && echo_and_log "УСПЕХ: $3 скопированы" || echo_and_log "ОШИБКА: Копирование $3"
@@ -54,30 +55,60 @@ copy_with_log() {
     fi
 }
 
+
+
 # --- ЭКСПОРТ ДАННЫХ ИЗ СТАРОГО КОНТЕЙНЕРА ---
-if [ "$(docker ps -q -f name=autocaller)" ]; then
-    echo_and_log "Старый контейнер обнаружен. Делаем дамп базы SQLite..."
+OLD_CONTAINER_ID=$(docker ps -q --filter "name=django-app" | head -n 1)
+
+if [ -n "$OLD_CONTAINER_ID" ]; then
+    echo_and_log "Старый контейнер обнаружен (ID: $OLD_CONTAINER_ID). Делаем дамп..."
     
-    # Делаем дамп внутри контейнера и сразу перенаправляем поток в файл на хосте
-    docker compose exec -T autocaller python3 manage.py dumpdata \
+    # Выполняем дамп. Используем -i для сохранения потока данных
+    docker exec -i "$OLD_CONTAINER_ID" python3 manage.py dumpdata \
         --exclude auth.permission \
         --exclude contenttypes \
         --exclude admin.logentry \
         --exclude sessions \
         > "$TARGET_DIR/data.json"
 
+    # Проверяем: успешно ли завершилась команда и не пустой ли файл
     if [ $? -eq 0 ] && [ -s "$TARGET_DIR/data.json" ]; then
         echo_and_log "УСПЕХ: Дамп базы сохранен в $TARGET_DIR/data.json"
     else
-        echo_and_log "ОШИБКА: Не удалось создать дамп или файл пуст!"
-        # Здесь можно добавить exit 1, если без данных обновляться нельзя
+        echo_and_log "ОШИБКА: Дамп создать не удалось или данных нет. Проверьте логи контейнера."
+        # Удаляем пустой файл, чтобы он не мешал импорту
+        rm -f "$TARGET_DIR/data.json"
     fi
 else
-    echo_and_log "ПРЕДУПРЕЖДЕНИЕ: Работающий контейнер не найден, дамп пропущен."
+    echo_and_log "ПРЕДУПРЕЖДЕНИЕ: Работающий контейнер 'django-app' не найден."
 fi
 
-# copy_with_log "$SCRIPT_DIR/db.sqlite3" "$TARGET_DIR/django-files" "база данных"
-copy_with_log "$SCRIPT_DIR/django-files/.env" "$TARGET_DIR/django-files" "файл окружения"
+
+# Добавление настроек подключения к базе данных в .env
+ENV_FILE="/opt/autocaller/django-files/.env"
+
+if ! grep -q "POSTGRES_DB" "$ENV_FILE"; then
+    echo "POSTGRES_DB=autocaller_db" >> "$ENV_FILE"
+    echo "POSTGRES_USER=autocaller" >> "$ENV_FILE"
+    echo "POSTGRES_PASSWORD=autocaller" >> "$ENV_FILE"
+    echo "POSTGRES_HOST=db" >> "$ENV_FILE"
+    echo "POSTGRES_PORT=5432" >> "$ENV_FILE"
+    echo_and_log "Параметры базы данных внесены в конфиг."
+else
+    echo_and_log "Параметры базы данных уже присутствуют в конфиге."
+fi
+
+# Добавление настроек config.ini
+CONF_FILE="/opt/autocaller/django-files/config.ini"
+
+if ! grep -q "list_call_time_limit" "$CONF_FILE"; then
+    echo "list_call_time_limit = 1200" >> "$CONF_FILE"
+    echo_and_log "Параметры приложения внесены в конфиг."
+else
+    echo_and_log "Параметры приложения уже присутствуют в конфиге."
+fi
+
+# Копирование нового файла docker-compose.yml
 copy_with_log "$SCRIPT_DIR/docker-compose.yml" "$TARGET_DIR/" "docker-compose.yml"
 
 
@@ -85,21 +116,22 @@ copy_with_log "$SCRIPT_DIR/docker-compose.yml" "$TARGET_DIR/" "docker-compose.ym
 
 # 3. Работа с Docker образами
 if [ -f "$SCRIPT_DIR/autocaller.tar" ]; then
-    echo_and_log "Загрузка нового образа..."
+    echo_and_log "Загрузка нового образа autocaller"
     docker load -i "$SCRIPT_DIR/autocaller.tar" || { echo_and_log "ОШИБКА: Образ не загружен"; exit 1; }
     
     echo_and_log "Очистка старых образов..."
-    IMAGE_IDS=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "autocaller" | grep "<none>" || true)
-    [ -n "$IMAGE_IDS" ] && docker rmi -f $IMAGE_IDS >/dev/null 2>&1
+    docker image prune -f >/dev/null 2>&1
 else
     echo_and_log "ОШИБКА: Файл autocaller.tar не найден!"
     exit 1
 fi
 
 if [ -f "$SCRIPT_DIR/postgres.tar" ]; then
-    echo_and_log "Загрузка нового образа..."
-    docker load -i "$SCRIPT_DIR/postgres.tar" || { echo_and_log "ОШИБКА: Образ не загружен"; exit 1; }
-
+    if docker images --format "{{.Repository}}" | grep -q "postgres"; then
+        echo_and_log "Загрузка образа postgres не требуется"
+    else 
+        echo_and_log "Загрузка нового образа postgres"
+        docker load -i "$SCRIPT_DIR/postgres.tar" || { echo_and_log "ОШИБКА: Образ не загружен"; exit 1; }
 else
     echo_and_log "ОШИБКА: Файл postgres.tar не найден!"
     exit 1
@@ -145,12 +177,12 @@ $DOCKER_CMD exec -T autocaller python3 manage.py migrate --noinput
 # Удаляем записи, которые могли создаться автоматически (например, при migrate),
 # чтобы они не конфликтовали с данными из дампа.
 echo_and_log "Подготовка базы к импорту..."
-$DOCKER_CMD exec -T autocaller python3 manage.py shell -c "from django.contrib.auth.models import User; User.objects.all().delete()"
+$DOCKER_CMD exec -T autocaller python3 manage.py shell -c "from django.contrib.auth import get_user_model; get_user_model().objects.all().delete()"
 
 # 3. Загружаем данные (используем поток через дефис '-')
 echo_and_log "Загрузка данных из JSON..."
 if [ -f "$TARGET_DIR/data.json" ]; then
-    cat "$TARGET_DIR/data.json" | $DOCKER_CMD exec -T autocaller python3 manage.py loaddata --format=json -
+    cat "$TARGET_DIR/data.json" | $DOCKER_CMD exec -i autocaller python3 manage.py loaddata --format=json -
 else
     echo_and_log "ОШИБКА: Файл $TARGET_DIR/data.json не найден для импорта!"
 fi
