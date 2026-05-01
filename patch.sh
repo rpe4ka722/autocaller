@@ -59,7 +59,7 @@ if [ "$(docker ps -q -f name=autocaller)" ]; then
     echo_and_log "Старый контейнер обнаружен. Делаем дамп базы SQLite..."
     
     # Делаем дамп внутри контейнера и сразу перенаправляем поток в файл на хосте
-    docker compose exec -T autocaller python manage.py dumpdata \
+    docker compose exec -T autocaller python3 manage.py dumpdata \
         --exclude auth.permission \
         --exclude contenttypes \
         --exclude admin.logentry \
@@ -120,7 +120,7 @@ if [ -f "docker-compose.yml" ]; then
     fi
 
     echo_and_log "Полная очистка контейнеров и томов статики..."
-    $DOCKER_CMD down -v 2>/dev/null
+    $DOCKER_CMD down -v --remove-orphans
 
     echo_and_log "Запуск сервисов..."
     $DOCKER_CMD up -d
@@ -139,25 +139,25 @@ sleep 10
 
 # 1. Применяем миграции
 echo_and_log "Применение миграций в Postgres..."
-$DOCKER_CMD exec -T autocaller python manage.py migrate --noinput
+$DOCKER_CMD exec -T autocaller python3 manage.py migrate --noinput
 
 # 2. Очистка конфликтующих данных
 # Удаляем записи, которые могли создаться автоматически (например, при migrate),
 # чтобы они не конфликтовали с данными из дампа.
 echo_and_log "Подготовка базы к импорту..."
-$DOCKER_CMD exec -T autocaller python manage.py shell -c "from django.contrib.auth.models import User; User.objects.all().delete()"
+$DOCKER_CMD exec -T autocaller python3 manage.py shell -c "from django.contrib.auth.models import User; User.objects.all().delete()"
 
 # 3. Загружаем данные (используем поток через дефис '-')
 echo_and_log "Загрузка данных из JSON..."
 if [ -f "$TARGET_DIR/data.json" ]; then
-    cat "$TARGET_DIR/data.json" | $DOCKER_CMD exec -T autocaller python manage.py loaddata --format=json -
+    cat "$TARGET_DIR/data.json" | $DOCKER_CMD exec -T autocaller python3 manage.py loaddata --format=json -
 else
     echo_and_log "ОШИБКА: Файл $TARGET_DIR/data.json не найден для импорта!"
 fi
 
 # 4. Сброс последовательностей ID (исправлено для автоматического определения приложений)
 echo_and_log "Сброс последовательностей ID..."
-$DOCKER_CMD exec -T autocaller /bin/bash -c "python manage.py sqlsequencereset auth autocaller | python manage.py dbshell"
+$DOCKER_CMD exec -T autocaller /bin/bash -c "python3 manage.py sqlsequencereset auth autocaller | python3 manage.py dbshell"
 
 echo_and_log "Сбор статики Django..."
 docker compose exec -T autocaller python3 manage.py collectstatic --no-input
