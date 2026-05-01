@@ -143,7 +143,7 @@ class AMImanager:
         # А) Идентификация канала: ActionID -> Linkedid
         msg_action_id = message.get('ActionID')
         if message.event.lower() == 'originateresponse' and msg_action_id == self.action_id:
-            if getattr(message, 'Responce', None)=='Succes':
+            if getattr(message, 'Response', None)=='Succes':
                 self.linkedid = getattr(message, 'Uniqueid', None) or getattr(message, 'Linkedid', None)
                 # print(f"Связь: {self.action_id} <-> {self.linkedid}")
             elif getattr(message, 'Responce', None)=='Failure':
@@ -309,6 +309,9 @@ def list_call(call_list_id, report_id):
     """Проходит по всем абонентам в списке и запускает подзадачи"""
     print(f'Обзвон листа c id = {report_id}')
 
+    config = configparser.ConfigParser()
+    config.read('./django-files/config.ini')
+
     try:
         # Шаг 1: Инициализация данных
         call_list = CallList.objects.get(id=call_list_id)
@@ -344,7 +347,10 @@ def list_call(call_list_id, report_id):
         report.save()
 
         # Шаг 3: Мониторинг выполнения (Ожидание результатов)
-        while results:
+        limit = config.getint('settings', 'list_call_time_limit', fallback=900)
+        time_limit_counter = 0
+
+        while results and time_limit_counter < limit:
             any_finished = False
 
             for result_id in results[:]:
@@ -378,6 +384,16 @@ def list_call(call_list_id, report_id):
 
             if results:
                 time.sleep(0.5)
+                time_limit_counter += 0.5
+
+        # После цикла while
+        if results:
+            print(f"Внимание: мониторинг прерван по таймауту. Осталось задач: {len(results)}")
+            # Опционально: дописываем остаток в unchecked
+            Report.objects.filter(id=report.id).update(
+                unchecked_abonents=F('unchecked_abonents') + len(results),
+                call_queue=0
+            )
 
         report.refresh_from_db() # Подтягиваем все F() обновления
         report.in_progress = False
