@@ -307,7 +307,7 @@ def abonent_call(sound, code, report_id, abonent_id, call_list_id, password, is_
 @shared_task() 
 def list_call(call_list_id, report_id):
     """Проходит по всем абонентам в списке и запускает подзадачи"""
-    print(f'Обзвон листа {report_id}')
+    print(f'Обзвон листа c id = {report_id}')
 
     try:
         # Шаг 1: Инициализация данных
@@ -345,9 +345,11 @@ def list_call(call_list_id, report_id):
 
         # Шаг 3: Мониторинг выполнения (Ожидание результатов)
         while results:
+            any_finished = False
 
             for result_id in results[:]:
                 res_obj = AsyncResult(id=result_id)
+
                 if res_obj.ready():
                 # Здесь .result будет содержать именно то, что вернул abonent_call (True/False)
 
@@ -357,15 +359,25 @@ def list_call(call_list_id, report_id):
                         # Сюда попадем, если статус FAILURE, REVOKED или RETRY
                         print(f"Задача {result_id} завершилась неудачно со статусом: {res_obj.status}")
                         is_confirmed = False
-        
+
+                    # Атомарное обновление счетчиков в БД
                     if is_confirmed:
                         Report.objects.filter(id=report.id).update(checked_abonents=F('checked_abonents') + 1)
                     else:
                         Report.objects.filter(id=report.id).update(unchecked_abonents=F('unchecked_abonents') + 1)
 
-                    report.call_queue = len(results)
+                    results.remove(result_id)
+                    any_finished = True
 
-            time.sleep(0.5)
+            if any_finished:
+                # Обновляем размер очереди в БД
+                new_queue_size = len(results)
+                Report.objects.filter(id=report.id).update(call_queue=new_queue_size)
+                # Синхронизируем локальный объект, если он понадобится дальше в коде
+                report.call_queue = new_queue_size
+
+            if results:
+                time.sleep(0.5)
 
         report.refresh_from_db() # Подтягиваем все F() обновления
         report.in_progress = False
