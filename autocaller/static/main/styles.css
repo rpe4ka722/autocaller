@@ -284,3 +284,24 @@
   white-space: normal;
   overflow: hidden;
 }
+
+.abonent_body {
+  margin-bottom: 70px;
+}
+
+.list_modal_footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 10px;
+}
+
+#gear-icon-list {
+  font-size: 1.5rem;
+  display: inline-block;
+}
+
+
+#gear-icon-list:hover {
+  animation: rotation 3s linear infinite;
+}

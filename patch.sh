@@ -160,7 +160,7 @@ echo_and_log "Сброс последовательностей ID..."
 $DOCKER_CMD exec -T autocaller /bin/bash -c "python manage.py sqlsequencereset auth autocaller | python manage.py dbshell"
 
 echo_and_log "Сбор статики Django..."
-docker compose exec -T autocaller python3 manage.py collectstatic
+docker compose exec -T autocaller python3 manage.py collectstatic --no-input
 
 echo_and_log "========================================="
 echo_and_log "Обновление завершено! Лог: $LOG_FILE"

@@ -288,7 +288,7 @@ fi
 echo_and_log "Создание администратора Django..."
 
 # Задаем данные админа (можно вынести в .env)
-ADMIN_USER="root"
+ADMIN_USER="admin"
 ADMIN_EMAIL="admin@example.com"
 ADMIN_PASS="12345root"
 ADMIN_DEPARTMENT="ALL"
