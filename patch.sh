@@ -184,27 +184,34 @@ echo_and_log "Загрузка данных из JSON..."
 CONTAINER_DATA_PATH="/opt/autocaller/data.json"
 
 if [ -f "$TARGET_DIR/data.json" ]; then
-    $DOCKER_CMD exec -i autocaller python3 manage.py loaddata "$CONTAINER_DATA_PATH"
+    $DOCKER_CMD exec -i autocaller python3 manage.py loaddata --format=json "$CONTAINER_DATA_PATH"
+    
+    if [ $? -eq 0 ]; then
+        echo_and_log "УСПЕХ: Данные из JSON загружены в базу."
+    else
+        echo_and_log "ОШИБКА: loaddata завершилась с ошибкой. Проверьте структуру JSON."
+    fi
 else
-    echo_and_log "ОШИБКА: Файл $TARGET_DIR/data.json не найден для импорта!"
+    echo_and_log "ОШИБКА: Файл $TARGET_DIR/data.json не найден на хосте!"
 fi
 
 # 4. Сброс последовательностей ID (исправлено для автоматического определения приложений)
 echo_and_log "Сброс последовательностей ID..."
-RESET_SQL_PYTHON="
+RESET_SCRIPT="
 from django.core.management.color import no_style
 from django.db import connection
 from django.apps import apps
 
-# Автоматический поиск всех ваших приложений (исключая системные django.*)
-local_apps = [config for config in apps.get_app_configs() if not config.name.startswith('django.')]
-statements = connection.ops.sequence_reset_sql(no_style(), local_apps)
+# Явно берем конфиги нужных приложений
+labels = ['auth', 'autocaller']
+app_configs = [apps.get_app_config(l) for l in labels if apps.is_installed(l)]
 
+statements = connection.ops.sequence_reset_sql(no_style(), app_configs)
 with connection.cursor() as cursor:
     for sql in statements:
         cursor.execute(sql)
 "
-$DOCKER_CMD exec -i autocaller python3 manage.py shell -c "$RESET_SQL_PYTHON"
+$DOCKER_CMD exec -i autocaller python3 manage.py shell -c "$RESET_SCRIPT"
 
 echo_and_log "Сбор статики Django..."
 docker compose exec -T autocaller python3 manage.py collectstatic --no-input
