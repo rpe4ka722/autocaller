@@ -58,8 +58,8 @@ class Abonent(models.Model):
     
 
 class SoundFile(models.Model):
-    dir = models.CharField(max_length=100)
-    filename = models.CharField(max_length=100)
+    dir = models.CharField(max_length=300)
+    filename = models.CharField(max_length=300)
     department = models.CharField(max_length=4)
 
     def get_full_path(self):

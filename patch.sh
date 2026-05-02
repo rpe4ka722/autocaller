@@ -153,6 +153,12 @@ if [ -f "docker-compose.yml" ]; then
     echo_and_log "Полная очистка контейнеров и томов статики..."
     $DOCKER_CMD down -v --remove-orphans
 
+    # Дополнительная проверка: если папка тома все еще существует, удаляем её принудительно
+    if [ -d "/var/lib/docker/volumes/autocaller_static_volume" ]; then
+        echo_and_log "ПРЕДУПРЕЖДЕНИЕ: Том не удалился автоматически. Принудительная очистка..."
+        sudo rm -rf /var/lib/docker/volumes/autocaller_static_volume
+    fi
+
     echo_and_log "Запуск сервисов..."
     $DOCKER_CMD up -d
     if [ $? -eq 0 ]; then
@@ -181,15 +187,14 @@ $DOCKER_CMD exec -T autocaller python3 manage.py shell -c "from django.contrib.a
 # 3. Загружаем данные в новую базу
 echo_and_log "Загрузка данных из JSON..."
 
-CONTAINER_DATA_PATH="/opt/autocaller/data.json"
-
 if [ -f "$TARGET_DIR/data.json" ]; then
-    $DOCKER_CMD exec -i autocaller python3 manage.py loaddata --format=json "$CONTAINER_DATA_PATH"
+    # Передаем содержимое файла через пайп прямо в команду внутри контейнера
+    cat "$TARGET_DIR/data.json" | $DOCKER_CMD exec -i -T autocaller python3 manage.py loaddata --format=json -
     
     if [ $? -eq 0 ]; then
         echo_and_log "УСПЕХ: Данные из JSON загружены в базу."
     else
-        echo_and_log "ОШИБКА: loaddata завершилась с ошибкой. Проверьте структуру JSON."
+        echo_and_log "ОШИБКА: loaddata не смогла обработать данные. Проверьте JSON."
     fi
 else
     echo_and_log "ОШИБКА: Файл $TARGET_DIR/data.json не найден на хосте!"
