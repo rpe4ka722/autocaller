@@ -112,8 +112,6 @@ fi
 copy_with_log "$SCRIPT_DIR/docker-compose.yml" "$TARGET_DIR/" "docker-compose.yml"
 
 
-
-
 # 3. Работа с Docker образами
 if [ -f "$SCRIPT_DIR/autocaller.tar" ]; then
     echo_and_log "Загрузка нового образа autocaller"
@@ -180,17 +178,33 @@ $DOCKER_CMD exec -T autocaller python3 manage.py migrate --noinput
 echo_and_log "Подготовка базы к импорту..."
 $DOCKER_CMD exec -T autocaller python3 manage.py shell -c "from django.contrib.auth import get_user_model; get_user_model().objects.all().delete()"
 
-# 3. Загружаем данные (используем поток через дефис '-')
+# 3. Загружаем данные в новую базу
 echo_and_log "Загрузка данных из JSON..."
+
+CONTAINER_DATA_PATH="/opt/autocaller/data.json"
+
 if [ -f "$TARGET_DIR/data.json" ]; then
-    cat "$TARGET_DIR/data.json" | $DOCKER_CMD exec -i autocaller python3 manage.py loaddata --format=json -
+    $DOCKER_CMD exec -i autocaller python3 manage.py loaddata "$CONTAINER_DATA_PATH"
 else
     echo_and_log "ОШИБКА: Файл $TARGET_DIR/data.json не найден для импорта!"
 fi
 
 # 4. Сброс последовательностей ID (исправлено для автоматического определения приложений)
 echo_and_log "Сброс последовательностей ID..."
-$DOCKER_CMD exec -T autocaller /bin/bash -c "python3 manage.py sqlsequencereset auth autocaller | python3 manage.py dbshell"
+RESET_SQL_PYTHON="
+from django.core.management.color import no_style
+from django.db import connection
+from django.apps import apps
+
+# Автоматический поиск всех ваших приложений (исключая системные django.*)
+local_apps = [config for config in apps.get_app_configs() if not config.name.startswith('django.')]
+statements = connection.ops.sequence_reset_sql(no_style(), local_apps)
+
+with connection.cursor() as cursor:
+    for sql in statements:
+        cursor.execute(sql)
+"
+$DOCKER_CMD exec -i autocaller python3 manage.py shell -c "$RESET_SQL_PYTHON"
 
 echo_and_log "Сбор статики Django..."
 docker compose exec -T autocaller python3 manage.py collectstatic --no-input
