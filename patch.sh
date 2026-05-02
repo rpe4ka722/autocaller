@@ -153,11 +153,20 @@ if [ -f "docker-compose.yml" ]; then
     echo_and_log "Полная очистка контейнеров и томов статики..."
     $DOCKER_CMD down -v --remove-orphans
 
-    # Дополнительная проверка: если папка тома все еще существует, удаляем её принудительно
+        # Принудительно удаляем конкретный том, если он застрял в метаданных Docker
+    if docker volume ls -q | grep -q "^autocaller_static_volume$"; then
+        echo_and_log "Удаление застрявшего тома через Docker CLI..."
+        docker volume rm -f autocaller_static_volume
+    fi
+
+    # Только если Docker не справился, чистим папку (но лучше избегать)
     if [ -d "/var/lib/docker/volumes/autocaller_static_volume" ]; then
-        echo_and_log "ПРЕДУПРЕЖДЕНИЕ: Том не удалился автоматически. Принудительная очистка..."
+        echo_and_log "Критическая очистка директории..."
         sudo rm -rf /var/lib/docker/volumes/autocaller_static_volume
     fi
+
+    # Даем демону паузу, чтобы обновить состояние файловой системы
+    sleep 2
 
     echo_and_log "Запуск сервисов..."
     $DOCKER_CMD up -d
