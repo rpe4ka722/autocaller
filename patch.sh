@@ -132,6 +132,7 @@ if [ -f "$SCRIPT_DIR/postgres.tar" ]; then
     else 
         echo_and_log "Загрузка нового образа postgres"
         docker load -i "$SCRIPT_DIR/postgres.tar" || { echo_and_log "ОШИБКА: Образ не загружен"; exit 1; }
+    fi
 else
     echo_and_log "ОШИБКА: Файл postgres.tar не найден!"
     exit 1
