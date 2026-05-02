@@ -18,6 +18,73 @@ echo_and_log() {
     log_message "$1"
 }
 
+clean_docker_volumes() {
+    echo_and_log "Полная очистка контейнеров и томов статики..."
+    docker compose down -v --remove-orphans
+    sleep 10
+
+    docker volume rm -f autocaller_static_volume 2>/dev/null
+    docker volume prune -f
+    echo_and_log "Принудительная очистка всех зависших ресурсов..."
+    docker system prune -f --volumes
+
+    echo_and_log "Перезапуск службы Docker для сброса кэша слоев..."
+    systemctl restart docker
+    sleep 5
+
+
+    # Принудительно удаляем конкретный том, если он застрял в метаданных Docker
+    echo_and_log "Проверка наличия тома в докере"
+    if docker volume ls -q | grep -q "^autocaller_static_volume$"; then
+        echo_and_log "Удаление застрявшего тома через Docker CLI..."
+        docker volume rm -f autocaller_static_volume
+    else 
+        echo_and_log "Том не найден в Docker CLI"
+    fi
+
+    # Только если Docker не справился, чистим папку (но лучше избегать)
+    echo_and_log "Проверка наличия тома в системе"
+    VOLUME_PATH="/var/lib/docker/volumes/autocaller_static_volume"
+
+    # 1. Проверяем существование директории
+    if [ -d "$VOLUME_PATH" ]; then
+        echo_and_log "ПРЕДУПРЕЖДЕНИЕ: Обнаружены остаточные файлы в $VOLUME_PATH"
+        
+        # 2. Проверяем, не занята ли папка каким-то процессом (помогает при "file exists")
+        if sudo lsof +D "$VOLUME_PATH" > /dev/null 2>&1; then
+            echo_and_log "ОШИБКА: Папка тома занята другим процессом! Попытка принудительной остановки..."
+            sudo fuser -k -m "$VOLUME_PATH" > /dev/null 2>&1
+            sleep 1
+        fi
+
+        # 3. Принудительное удаление
+        sudo rm -rf "$VOLUME_PATH"
+        
+        # 4. Финальная проверка: удалилось ли на самом деле?
+        if [ -d "$VOLUME_PATH" ]; then
+            echo_and_log "КРИТИЧЕСКАЯ ОШИБКА: Не удалось удалить $VOLUME_PATH даже через sudo rm. Проверьте права FS."
+            exit 1
+        else
+            echo_and_log "Системная очистка завершена успешно."
+        fi
+    else
+        echo_and_log "Система чиста: папка тома отсутствует."
+    fi
+
+    # Даем демону паузу, чтобы обновить состояние файловой системы
+    sleep 5
+}
+
+start_docker() {
+    echo_and_log "Запуск сервисов..."
+    docker compose up -d
+    if [ $? -eq 0 ]; then
+        echo_and_log "УСПЕХ: Контейнеры запущены"
+    else
+        echo_and_log "ОШИБКА: Не удалось запустить Docker"
+    fi
+}
+
 # Проверка прав администратора
 if [ "$EUID" -ne 0 ]; then
   echo "Пожалуйста, запустите скрипт от имени администратора (sudo)."
@@ -140,43 +207,38 @@ chmod -R 777 "$TARGET_DIR"
 
 # 4. Запуск Docker Compose
 if [ -f "docker-compose.yml" ]; then
-    # Определяем команду
-    if docker compose version >/dev/null 2>&1; then
-        DOCKER_CMD="docker compose"
-    elif command -v docker-compose >/dev/null 2>&1; then
-        DOCKER_CMD="docker-compose"
-    else
-        echo_and_log "ОШИБКА: Docker Compose не найден"
+    MAX_ATTEMPTS=5
+    ATTEMPT=1
+    SUCCESS=false
+
+    while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+        echo_and_log "Попытка запуска Docker (Попытка №$ATTEMPT)..."
+        
+        # Вызываем функцию очистки перед каждым запуском (или только после неудачи)
+        clean_docker_volumes
+        
+        # Пытаемся запустить
+        start_docker
+        
+        # Проверяем статус (код выхода последней команды внутри start_docker)
+        if docker compose ps | grep -q "Up"; then
+            echo_and_log "Службы успешно запущены."
+            SUCCESS=true
+            break
+        else
+            echo_and_log "ПРЕДУПРЕЖДЕНИЕ: Попытка №$ATTEMPT не удалась."
+            ((ATTEMPT++))
+            sleep 5
+        fi
+    done
+
+    if [ "$SUCCESS" = false ]; then
+        echo_and_log "КРИТИЧЕСКАЯ ОШИБКА: Не удалось запустить Docker после $MAX_ATTEMPTS попыток."
         exit 1
-    fi
-
-    echo_and_log "Полная очистка контейнеров и томов статики..."
-    $DOCKER_CMD down -v --remove-orphans
-
-        # Принудительно удаляем конкретный том, если он застрял в метаданных Docker
-    if docker volume ls -q | grep -q "^autocaller_static_volume$"; then
-        echo_and_log "Удаление застрявшего тома через Docker CLI..."
-        docker volume rm -f autocaller_static_volume
-    fi
-
-    # Только если Docker не справился, чистим папку (но лучше избегать)
-    if [ -d "/var/lib/docker/volumes/autocaller_static_volume" ]; then
-        echo_and_log "Критическая очистка директории..."
-        sudo rm -rf /var/lib/docker/volumes/autocaller_static_volume
-    fi
-
-    # Даем демону паузу, чтобы обновить состояние файловой системы
-    sleep 2
-
-    echo_and_log "Запуск сервисов..."
-    $DOCKER_CMD up -d
-    if [ $? -eq 0 ]; then
-        echo_and_log "УСПЕХ: Контейнеры запущены"
-    else
-        echo_and_log "ОШИБКА: Не удалось запустить Docker"
     fi
 else
     echo_and_log "ОШИБКА: docker-compose.yml не найден"
+    exit 1
 fi
 
 # --- ИМПОРТ В НОВЫЙ КОНТЕЙНЕР (POSTGRES) ---
@@ -185,13 +247,13 @@ sleep 10
 
 # 1. Применяем миграции
 echo_and_log "Применение миграций в Postgres..."
-$DOCKER_CMD exec -T autocaller python3 manage.py migrate --noinput
+docker compose exec -T autocaller python3 manage.py migrate --noinput
 
 # 2. Очистка конфликтующих данных
 # Удаляем записи, которые могли создаться автоматически (например, при migrate),
 # чтобы они не конфликтовали с данными из дампа.
 echo_and_log "Подготовка базы к импорту..."
-$DOCKER_CMD exec -T autocaller python3 manage.py shell -c "from django.contrib.auth import get_user_model; get_user_model().objects.all().delete()"
+docker compose exec -T autocaller python3 manage.py shell -c "from django.contrib.auth import get_user_model; get_user_model().objects.all().delete()"
 
 # 3. Загружаем данные в новую базу
 echo_and_log "Загрузка данных из JSON..."
@@ -225,7 +287,7 @@ with connection.cursor() as cursor:
     for sql in statements:
         cursor.execute(sql)
 "
-$DOCKER_CMD exec -i autocaller python3 manage.py shell -c "$RESET_SCRIPT"
+docker compose exec -i autocaller python3 manage.py shell -c "$RESET_SCRIPT"
 
 echo_and_log "Сбор статики Django..."
 docker compose exec -T autocaller python3 manage.py collectstatic --no-input
