@@ -260,7 +260,7 @@ echo_and_log "Загрузка данных из JSON..."
 
 if [ -f "$TARGET_DIR/data.json" ]; then
     # Передаем содержимое файла через пайп прямо в команду внутри контейнера
-    cat "$TARGET_DIR/data.json" | $DOCKER_CMD exec -i -T autocaller python3 manage.py loaddata --format=json -
+    cat "$TARGET_DIR/data.json" | docker compose exec -i -T autocaller python3 manage.py loaddata --format=json -
     
     if [ $? -eq 0 ]; then
         echo_and_log "УСПЕХ: Данные из JSON загружены в базу."

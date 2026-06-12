@@ -119,28 +119,37 @@ echo_and_log "Итог установки пакетов: успешно - $succ
 
 # Определение директории рабочего стола
 DESKTOP_DIR=""
+USER_HOME=""
 
-if [ -n "$XDG_DESKTOP_DIR" ]; then
-    # XDG стандарт
-    DESKTOP_DIR="$XDG_DESKTOP_DIR"
-elif [ -n "$HOME" ]; then
-    # Проверяем различные возможные расположения рабочего стола
-    if [ -d "$HOME/Desktop" ]; then
-        DESKTOP_DIR="$HOME/Desktop"
-    elif [ -d "$HOME/Рабочий стол" ]; then
-        DESKTOP_DIR="$HOME/Рабочий стол"
-    elif [ -d "$HOME/desktop" ]; then
-        DESKTOP_DIR="$HOME/desktop"
-    fi
+if [ -n "$SUDO_USER" ]; then
+    # Находим его домашнюю директорию
+    USER_HOME=$(eval echo ~"$SUDO_USER")
+else
+    # Если скрипт запущен не через sudo, используем обычный $HOME
+    USER_HOME=$HOME
 fi
 
-# Копирование файла на рабочий стол, если директория найдена
+
+for dir in "$USER_HOME/Desktop" "$USER_HOME/Рабочий стол" "$USER_HOME/desktop"; do
+    if [ -d "$dir" ]; then
+        DESKTOP_DIR="$dir"
+        echo_and_log "Файл $dir"
+        break
+    fi
+done
+
+if [ -z "$DESKTOP_DIR" ]; then
+    echo_and_log "ПРЕДУПРЕЖДЕНИЕ: Не удалось найти директорию рабочего стола для пользователя $USER_HOME"
+fi
+
+# Проверка и копирование
 if [ -n "$DESKTOP_DIR" ] && [ -d "$DESKTOP_DIR" ]; then
-    if [ -f "autocaller.desktop" ]; then
-        cp "autocaller.desktop" "$DESKTOP_DIR/"
-        echo_and_log "ИНФО: Файл autocaller.desktop скопирован на рабочий стол"
+    FILE_TO_COPY="autocaller.desktop"
+    if [ -f "$FILE_TO_COPY" ]; then
+        cp "$FILE_TO_COPY" "$DESKTOP_DIR/"
+        echo_and_log "ИНФО: Файл $FILE_TO_COPY успешно скопирован в $DESKTOP_DIR"
     else
-        echo_and_log "ПРЕДУПРЕЖДЕНИЕ: Файл autocaller.desktop не найден"
+        echo_and_log "ПРЕДУПРЕЖДЕНИЕ: Файл $FILE_TO_COPY не найден в текущей директории"
     fi
 else
     echo_and_log "ПРЕДУПРЕЖДЕНИЕ: Не удалось определить директорию рабочего стола"
