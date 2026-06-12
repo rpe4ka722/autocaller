@@ -1,7 +1,10 @@
 from django.shortcuts import render, redirect
+from django.contrib import messages
 import requests
 import os
+import re
 import time
+import shlex
 import configparser
 from main.tasks import start_caller
 from main.forms import AbonentForm
@@ -92,18 +95,18 @@ def report_status(request, report_id):
         return HttpResponse('Неизвестная ошибка', status=500)
     
 
-@login_required(login_url='account:login')
-def repeat_unconfirmed(request, report_id):
-    try:
-        # Проверяем существование Report явно
-        Report.objects.get(id=report_id) 
+# @login_required(login_url='account:login')
+# def repeat_unconfirmed(request, report_id):
+#     try:
+#         # Проверяем существование Report явно
+#         Report.objects.get(id=report_id) 
         
-        calls_with_confirmed_false = Call.objects.filter(report_id=report_id, confirmed=False)
+#         calls_with_confirmed_false = Call.objects.filter(report_id=report_id, confirmed=False)
         
 
         
-    except Report.DoesNotExist:
-        return HttpResponse('Неизвестная ошибка', status=500)
+#     except Report.DoesNotExist:
+#         return HttpResponse('Неизвестная ошибка', status=500)
 
 
 @login_required(login_url='account:login')
@@ -273,6 +276,12 @@ def edit_abonent(request, id):
         return HttpResponse(msg, status=200)
     else: 
         return HttpResponse(msg, status=500)
+
+
+def clean_filename(filename):
+    # Заменяем все недопустимые символы на подчеркивание
+    # [<>:"/\\|?*] - список символов, запрещенных в Windows/Linux
+    return re.sub(r'[<>:"/\\|?*]', '_', filename)
     
 
 @login_required(login_url='account:login')
@@ -289,69 +298,125 @@ def sounds(request):
 def create_sound(request):
     dep = request.user.department
     if request.method == 'POST':
-        filename = request.POST['filename'].replace(' ', '_') + '.wav'
+        
+        raw_name = request.POST.get('filename', 'default').replace(' ', '_')
+        filename = clean_filename(raw_name) + '.wav'
+
         text = request.POST['text']
         directory_temp = settings.MEDIA_ROOT + '/temp/'
         directory = settings.MEDIA_ROOT + '/sounds/' + dep + '/'
-        print(directory)
-        try:
-            sound_file = SoundFile.objects.get(filename=filename, department=dep)
-        except SoundFile.DoesNotExist:
-            sound_file = SoundFile(filename = filename, department = dep, dir = directory)
+
+        os.makedirs(directory, exist_ok=True)
+        os.makedirs(directory_temp, exist_ok=True)
+
+        # try:
+        #     sound_file = SoundFile.objects.get(filename=filename, department=dep)
+        # except SoundFile.DoesNotExist:
+        #     sound_file = SoundFile(filename = filename, department = dep, dir = directory)
+
+        sound_file, created = SoundFile.objects.get_or_create(filename=filename, department=dep, defaults={'dir': directory})
+
         path_temp = directory_temp + filename
-        cmd = 'echo "' + text + '"| RHVoice-test -p Elena+CBL -o ' + path_temp
-        cmd2 = 'sox ' + path_temp + ' --channels 1 ' + sound_file.get_full_path() + ' rate 8000'  
+        # cmd = 'echo "' + text + '"| RHVoice-test -p Elena+CBL -o ' + path_temp
+        cmd_rhvoice = f'echo {shlex.quote(text)} | RHVoice-test -p Elena+CBL -o {shlex.quote(path_temp)}'
+        path_final = sound_file.get_full_path()
+        # cmd2 = 'sox ' + path_temp + ' --channels 1 ' + sound_file.get_full_path() + ' rate 8000' 
+        cmd_sox = f'sox {shlex.quote(path_temp)} --channels 1 {shlex.quote(path_final)} rate 8000' 
+
+        
+
         try:
-            result = subprocess.run([cmd], shell=True)
-            if result.returncode == 0:
-                try:
-                   result = subprocess.run([cmd2], shell=True)
-                   os.remove(path_temp)
-                   print(result)
-                except subprocess.CalledProcessError as e:
-                    print(f"An error occurred: {e}")     
+            result1 = subprocess.run(cmd_rhvoice, shell=True, check=True)
+            result2 = subprocess.run(cmd_sox, shell=True, check=True)  
+
+            sound_file.save()
+            messages.success(request, f'Файл "{filename}" успешно создан.') 
+
         except subprocess.CalledProcessError as e:
-            print(f"An error occurred: {e}")
-        sound_file.save()
+            if created:
+                sound_file.delete()
+            messages.error(request, f'Ошибка при создании файла {e.stderr}.')
+
+        finally:
+            # Гарантированное удаление временного файла
+            if os.path.exists(path_temp):
+                os.remove(path_temp)
+
     return redirect('main:sounds')
 
 
 @login_required(login_url='account:login')
 def download_sound(request):
     dep = request.user.department
-    if request.method == 'POST':
-        directory_temp = settings.MEDIA_ROOT + '/temp/'
-        directory = settings.MEDIA_ROOT + '/sounds/' + dep + '/'
+    if request.method == 'POST' and 'sound_file' in request.FILES:
         file = request.FILES['sound_file']
-        name = file.name
-        filename = os.path.splitext(name)[0] + '.wav'
-        try:
-            soundfile = SoundFile.objects.get(filename=filename, department=dep)
-        except SoundFile.DoesNotExist:
-            soundfile = SoundFile(filename = filename, department = dep, dir = directory)
-        path_temp = directory_temp + name
-        cmd = 'sox ' + path_temp + ' --channels 1 ' + soundfile.get_full_path() + ' rate 8000'
+        # Используем безопасное имя файла
+        filename = os.path.splitext(file.name)[0].replace(' ', '_') + '.wav'
+        
+        directory = os.path.join(settings.MEDIA_ROOT, 'sounds', dep, '')
+        directory_temp = os.path.join(settings.MEDIA_ROOT, 'temp/')
+        path_temp = os.path.join(directory_temp, file.name)
+        
+        # Гарантируем наличие директорий
+        os.makedirs(directory, exist_ok=True)
+        os.makedirs(directory_temp, exist_ok=True)
+
+        # Получаем или создаем объект
+        soundfile, created = SoundFile.objects.get_or_create(
+            filename=filename, 
+            department=dep, 
+            defaults={'dir': directory}
+        )
+        
+        # Сохранение входящего файла
         with open(path_temp, 'wb+') as destination:
             for chunk in file.chunks():
                 destination.write(chunk)
+
+        # Подготовка команды с экранированием
+        path_final = soundfile.get_full_path()
+        cmd = f'sox {shlex.quote(path_temp)} --channels 1 {shlex.quote(path_final)} rate 8000'
+
         try:
-            result = subprocess.run([cmd], shell=True)
-            os.remove(path_temp)
-            print(result)
+            # check=True вызовет исключение при неудаче
+            subprocess.run(cmd, shell=True, check=True)
+            
+            # Атомарность: сохраняем в БД только после успеха
+            soundfile.save()
+            messages.success(request, str(e))
+            
         except subprocess.CalledProcessError as e:
-            print(f"An error occurred: {e}")
-        soundfile.save()
+            if created:
+                soundfile.delete()
+            messages.error(request, 'Ошибка при обработке файла {e.stderr}.')
+            
+        finally:
+            if os.path.exists(path_temp):
+                os.remove(path_temp)
+
     return redirect('main:sounds')
 
 
 @login_required(login_url='account:login')
 def delete_sound(request, id):
+    # Получаем объект. Если его нет, Django сам вернет 404
+    sound_file = get_object_or_404(SoundFile, pk=id, department=request.user.department)
+    
+    file_path = sound_file.get_full_path()
+    
     try:
-        object = get_object_or_404(SoundFile, pk=id)
-        os.remove(object.get_full_path())
-        object.delete()
-    except Abonent.DoesNotExist:
-        pass
+        # Пытаемся удалить файл, если он существует
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            
+        # Удаляем запись из БД
+        sound_file.delete()
+        messages.success(request, f'Файл "{sound_file.filename}" успешно удален.')
+        
+    except OSError as e:
+        # Ошибка прав доступа или файловой системы
+        messages.error(request, f'Не удалось удалить файл с диска: {e.stderr}')
+        
     return redirect('main:sounds')
 
 

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 import os
 import environ
+from django.contrib.messages import constants as messages
 
 from pathlib import Path
 
@@ -81,6 +82,9 @@ TEMPLATES = [
     },
 ]
 
+MESSAGE_TAGS = {
+    messages.ERROR: 'danger',
+}
 
 WSGI_APPLICATION = 'autocaller.wsgi.application'
 
