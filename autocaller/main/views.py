@@ -379,16 +379,25 @@ def download_sound(request):
 
         try:
             # check=True вызовет исключение при неудаче
-            subprocess.run(cmd, shell=True, check=True)
-            
+            result = subprocess.run(
+                cmd,
+                shell=True,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
             # Атомарность: сохраняем в БД только после успеха
             soundfile.save()
-            messages.success(request, str(e))
+            messages.success(
+                request,
+                f'Файл "{filename}" успешно загружен.',
+            )
             
         except subprocess.CalledProcessError as e:
             if created:
                 soundfile.delete()
-            messages.error(request, 'Ошибка при обработке файла {e.stderr}.')
+            messages.error(request, f'Ошибка при обработке файла {e.stderr}.')
             
         finally:
             if os.path.exists(path_temp):
@@ -644,6 +653,10 @@ def report(request):
 def start_list(request, list_id, sound_id):
     if request.method == 'GET':
         user = request.user
+        if Report.objects.filter(department=user.department, in_progress=True).exists():
+            messages.warning(request, 'Обзвон для вашего филиала уже запущен.')
+            return redirect('main:index')
+
         user_id = user.id
         try:
             sound = SoundFile.objects.get(id=sound_id)
