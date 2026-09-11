@@ -127,11 +127,12 @@ class AMImanager:
 
     async def handle_events(self, manager, message):
         """Обработчик всех входящих событий от Asterisk"""
+        event_name = str(getattr(message, 'event', '')).lower()
     
         
         # Обработка события Registry от Asterisk
         # Это происходит, когда транк (канал связи) не может авторизоваться
-        if message.event == 'Registry' and message.status == 'Rejected':
+        if event_name == 'registry' and getattr(message, 'status', None) == 'Rejected':
             self.call_object.ats_no_answer = True
             self.stop_event.set()
 
@@ -142,11 +143,12 @@ class AMImanager:
 
         # А) Идентификация канала: ActionID -> Linkedid
         msg_action_id = message.get('ActionID')
-        if message.event.lower() == 'originateresponse' and msg_action_id == self.action_id:
-            if getattr(message, 'Response', None)=='Succes':
+        if event_name == 'originateresponse' and msg_action_id == self.action_id:
+            response = getattr(message, 'Response', None)
+            if response == 'Success':
                 self.linkedid = getattr(message, 'Uniqueid', None) or getattr(message, 'Linkedid', None)
                 # print(f"Связь: {self.action_id} <-> {self.linkedid}")
-            elif getattr(message, 'Responce', None)=='Failure':
+            elif response == 'Failure':
                 print('OrogonateResponce = Failure')
                 self.call_object.call_error = True
                 self.stop_event.set()
@@ -155,7 +157,7 @@ class AMImanager:
                 self.call_object.call_error = True
                 self.stop_event.set()
 
-        if not self.linkedid and message.event == 'DialBegin'and message.DialString == f'{self.number}{self.prefix}':
+        if not self.linkedid and event_name == 'dialbegin' and message.DialString == f'{self.number}{self.prefix}':
             self.linkedid = getattr(message, 'DestUniqueid', None) or getattr(message, 'DestLinkedid', None)
             print(f"Связь: {self.action_id} <-> {self.linkedid}")
 
@@ -163,8 +165,11 @@ class AMImanager:
         # Б) Фильтрация событий по Linkedid
         msg_linkedid = getattr(message, 'Linkedid', None)
         msg_dest_linkedid = getattr(message, 'DestLinkedid', None)
-        if self.linkedid and msg_linkedid == self.linkedid or msg_dest_linkedid == self.linkedid:
-            event_name = message.event.lower()
+        belongs_to_call = self.linkedid is not None and (
+            msg_linkedid == self.linkedid
+            or msg_dest_linkedid == self.linkedid
+        )
+        if belongs_to_call:
 
             # Обработка ввода цифр абонентом (через VarSet в Dialplan)
             if event_name == 'varset' and message.Variable == 'user_input':
@@ -230,10 +235,10 @@ class AMImanager:
 
         # В) Ошибки регистрации или системы
         if msg_action_id == self.action_id:
-            if message.event == 'Registry' and message.status == 'Rejected':
+            if event_name == 'registry' and getattr(message, 'status', None) == 'Rejected':
                 self.call_object.ats_no_answer = True
                 self.stop_event.set()
-            elif event_name == 'originateresponse' and message.Response == 'Failure':
+            elif event_name == 'originateresponse' and getattr(message, 'Response', None) == 'Failure':
                 self.call_object.call_error = True
                 self.call_object.end_time = datetime.datetime.now()
                 self.stop_event.set()
@@ -440,5 +445,4 @@ def start_caller(self, list_id, user_id):
 
 
     
-
 
